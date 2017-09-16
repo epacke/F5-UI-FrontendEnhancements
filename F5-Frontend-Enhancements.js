@@ -215,28 +215,28 @@
     var EnableDefaultcsroptions = 1;
 
     var csroptions = {
-                Company1: {
-                    OptionName: 'Company 1',
-                    CommonName: '[Example *.domain.com]',
-                    Division: 'Stockholm office',
-                    Organization: 'My Office address',
-                    Locality: 'Stockholm',
-                    StateProvince: 'Stockholm',
-                    Country: 'SE',
-                    Email: 'office@company.se',
-                    SubjectAlt: ''
+                "Company1": {
+                    "OptionName": "Company 1",
+                    "CommonName": "[Example *.domain.com]",
+                    "Division": "Stockholm office",
+                    "Organization": "My Office address",
+                    "Locality": "Stockholm",
+                    "StateProvince": "Stockholm",
+                    "Country": "SE",
+                    "Email": "office@company.se",
+                    "SubjectAlt": ""
                 }
             ,
-                Company2: {
-                    OptionName: 'Another company',
-                    CommonName: '[Example *.domain.com]',
-                    Division: 'Oslo office',
-                    Organization: 'My Oslo Office address',
-                    Locality: 'Oslo',
-                    StateProvince: 'Oslo',
-                    Country: 'NO',
-                    Email: 'office@company.no',
-                    SubjectAlt: ''
+                "Company2": {
+                    "OptionName": "Another company",
+                    "CommonName": "[Example *.domain.com]",
+                    "Division": "Oslo office",
+                    "Organization": "My Oslo Office address",
+                    "Locality": "Oslo",
+                    "StateProvince": "Oslo",
+                    "Country": "NO",
+                    "Email": "office@company.no",
+                    "SubjectAlt": ""
                 }
             }
 
@@ -1065,7 +1065,7 @@ if(EnableDefaultcsroptions == 1 && location.pathname.indexOf('/tmui/Control/jspm
 
     }
 
-
+    //Function to overcome the session timeout issues
     setInterval(function(){
          $.ajax({
             url: "/tmui/Control/jspmap/tmui/locallb/profile/xml/list.jsp",
@@ -1077,7 +1077,6 @@ if(EnableDefaultcsroptions == 1 && location.pathname.indexOf('/tmui/Control/jspm
         })
     }, 30000);
     
-    
     if(document.location.pathname.indexOf("/tmui/Control/jspmap/tmui/locallb/profile/clientssl/create.jsp") >= 0){
         
         if(defaultClientSSLParentProfile !== ""){
@@ -1088,7 +1087,7 @@ if(EnableDefaultcsroptions == 1 && location.pathname.indexOf('/tmui/Control/jspm
             }, 1000);
             
         }
-    
+
     }
     
     function matchCertAndKey(){
