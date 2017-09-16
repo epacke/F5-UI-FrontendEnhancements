@@ -313,27 +313,47 @@
 
     //Change the iRule selection choice to show more iRules
     if(uriContains("/tmui/Control/form?__handler=/tmui/locallb/virtual_server/resources&__source=Manage")){
-        assignedrules = $("#assigned_rules").attr('size', iRulesCount);
-        rulereferences = $("#rule_references").attr('size', iRulesCount);
+        assignedrules = $("#assigned_rules").attr("size", iRulesCount);
+        rulereferences = $("#rule_references").attr("size", iRulesCount);
     }
 
-    if($("#monitor_rule").length && $("#available_monitor_select").length){
-        //Change the monitor count
-        $("#monitor_rule").attr('size', MonitorCount);
-        $("#available_monitor_select").attr('size', MonitorCount);
+    //Change the monitor count in the pool properties page
+    if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/properties.jsp?name") || uriContains("/tmui/Control/jspmap/tmui/locallb/pool/create.jsp")){
+        $("#monitor_rule").attr("size", MonitorCount);
+        $("#available_monitor_select").attr("size", MonitorCount);
     }
 
-    if($('select#class_string_item').length || $('select#class_ip_item').length){
-        //Change the data grouplist count
-        $('select#class_string_item').attr('size', DatagroupListCount);
-        $('select#class_ip_item').attr('size', DatagroupListCount);
+     //Check if a pool is being created
+    if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/create.jsp")){
+        
+        //Set the default pool name suffix
+        $("#pool_name").find("input[name=name]").attr("value", DefaultPoolName);
+
+        //Set the default action on pool down value
+        $("#action_on_service_down").find("option[value=\"" + DefaultActionOnPoolDown + "\"]").attr("SELECTED", "");
+        
+        //Set the default LB Method
+        $("#lb_mode").find("option[value=\"" + DefaultLBMethod + "\"]").attr("SELECTED", "");
+        
+        //If configured, choose node as default when selecting pool members
+        if(ChooseNodeAsDefault){
+            $("#member_address_radio_address").attr("unchecked","");
+            $("#member_address_radio_node").attr("checked","");
+            $("#member_address_radio_node").click();
+        }
+
+    }
+
+    //Change the data grouplist count
+    if(uriContains("/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?")){    
+        $('select').attr('size', DatagroupListCount);
     }
 
     //Set the default suffix of the HTTP monitors
     if($('select[name=mon_type]').length){
         if($('select[name=mon_type]').find(":selected").text().trim() == "HTTP"){
 
-            monitorname = $('input[name=monitor_name]').attr("value");
+            var monitorname = $('input[name=monitor_name]').attr("value");
 
             if($('input[name=monitor_name]').length && monitorname == "") {
                 $('input[name=monitor_name]').attr("value", HttpMonitorSuffix);
@@ -344,79 +364,7 @@
         }
     }
 
-    
-
-    //Check if an iRules list in exists in the DOM
-    //This one is a bit ugly because of iframes, F5's strange DOM tree and me not being able to find an alternative
-
-    if($('div').find("table#rule_list").find("tbody#list_body").children().length){
-
-        //Get all iRule rows from the iRule table
-        irulerows = $('div').find("table#rule_list").find("tbody#list_body").children();
-
-        for(i=0;i<irulerows.length;i++){
-
-            //Get each iRule name without the white spaces
-            tdcontent = $(irulerows[i]).children()[0].innerHTML.trim();
-
-            //Get the current partition
-            currentpartition = getCookie("F5_CURRENT_PARTITION")
-
-        var response = '';
-        currentRule = $(irulerows[i]).children()[0]
-        //Request the iRule page to see if the instance exists in Common or not
-        $.ajax({
-            url: "https://" + window.location.host + "/tmui/Control/jspmap/tmui/locallb/rule/properties.jsp?name=/Common/" + tdcontent,
-            type: "GET",
-            currentRule: currentRule,
-            currenttdcontent: tdcontent,
-            success: function(response) {
-                replaceContent(response, this.currentRule, this.currenttdcontent)
-                function replaceContent(response, currentRule, currenttdcontent){
-                    if (response.indexOf("Instance not found") == -1){
-                        $(currentRule)[0].innerHTML = currenttdcontent.replace(currenttdcontent, "<a href='https://" + window.location.host + "/tmui/Control/jspmap/tmui/locallb/rule/properties.jsp?name=/Common/" + currenttdcontent + "'>" + currenttdcontent + "</a>");
-                    }
-                }
-            },
-            async: true
-        });
-
-        //Request the iRule page to see if the instance exists in the current partition or not
-        $.ajax({
-            url: "https://" + window.location.host + "/tmui/Control/jspmap/tmui/locallb/rule/properties.jsp?name=/" + currentpartition + "/" + tdcontent,
-            type: "GET",
-            currentRule: currentRule,
-            currenttdcontent: tdcontent,
-            currentpartition: currentpartition,
-            success: function(response) {
-                replaceContent(response, this.currentRule, this.currenttdcontent, this.currentpartition)
-                function replaceContent(response, currentRule, currenttdcontent, currentpartition){
-                    if (response.indexOf("Instance not found") == -1){
-                        $(currentRule)[0].innerHTML = currenttdcontent.replace(currenttdcontent, "<a href='https://" + window.location.host + "/tmui/Control/jspmap/tmui/locallb/rule/properties.jsp?name=/" + currentpartition + "/" + currenttdcontent + "'>" + currenttdcontent + "</a>");
-                    }
-                }
-            },
-            async: true
-        });
-
-    }
-     }
-
-    //Check if a pool is being created
-    if($('#pool_name').find('input[name=name]').length){
-        //Set the default pool name suffix
-        $('#pool_name').find('input[name=name]').attr("value", DefaultPoolName);
-        //Set the default action on pool down value
-        $('#action_on_service_down').find('option[value="' + DefaultActionOnPoolDown + '"]').attr("SELECTED", "")
-        //Set the default LB Method
-        $('#lb_mode').find('option[value="' + DefaultLBMethod + '"]').attr("SELECTED", "")
-        //If configured, choose node as default when selecting pool members
-        if(ChooseNodeAsDefault){
-            $('#member_address_radio_address').attr("unchecked","");
-            $('#member_address_radio_node').attr("checked","");
-            $('#member_address_radio_node').click();
-        }
-    }
+   
     
     if(MakePartitionObjectsBold && location.pathname.indexOf('list.jsp') >= 0){
 
