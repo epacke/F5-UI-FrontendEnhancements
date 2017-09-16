@@ -281,25 +281,25 @@
         return str.indexOf(suffix, str.length - suffix.length) !== -1;
     }
     
-    if(ParseDataGroupLists && location.pathname.indexOf('/tmui/Control/jspmap/tmui/locallb/rule/properties.jsp') >= 0){
+    if(ParseDataGroupLists && location.pathname.indexOf("/tmui/Control/jspmap/tmui/locallb/rule/properties.jsp") >= 0){
 
         cacheDataGroupLists();
 
         //This part prepares the iRule definition table for the data group lists (adds a third column)
-        $("#div_general_table").find('.tablehead').find('td').attr('colspan', 3);
-        $("#div_general_table").find('tr').not('#definition_ace_row').each(function(){
-            $(this).find('td').eq(1).attr('colspan', 2);
+        $("#div_general_table").find('.tablehead').find("td").attr("colspan", 3);
+        $("#div_general_table").find("tr").not("#definition_ace_row").each(function(){
+            $(this).find("td").eq(1).attr("colspan", 2);
         });
-         $("#div_general_table").find('tr#definition_ace_row').find('td').eq(1).after('<td id="dglist" class="settings"></td>');
+         $("#div_general_table").find("tr#definition_ace_row").find("td").eq(1).after("<td id=\"dglist\" class=\"settings\"></td>");
 
         //Makes sure that the data group lists ends up in the top of the cell
-        $("#div_general_table").find('tr#definition_ace_row').find('td').eq(2).css("vertical-align","top");
+        $("#div_general_table").find("tr#definition_ace_row").find("td").eq(2).css("vertical-align","top");
         $("#div_general_table tbody tr#definition_ace_row td.settings").css("width","80%");
 
         //This command generates the data group lists (if any)
-        getDataGroupLists($('textarea#rule_definition').val())
+        getDataGroupLists($("textarea#rule_definition").val())
         
-        $(document).on('keyup', function(){
+        $(document).on("keyup", function(){
             
             var iRuleContent = codeEditor.gSettings.editor.container.env.document.doc.$lines.join("\n");
             
