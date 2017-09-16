@@ -472,7 +472,7 @@
                                 var netcatlink = linkprefix + "<input type=\"button\" class=\"monitortestbutton\" value=\"Netcat\"/><p>Netcat command (CRTL+C)<br><input id=\"netcatcommand\" class=\"monitorcopybox\" type=\"text\" value='" + netcatcommand + "'></p></a>";
 
                                 $(value).append("<td valign=\"middle\">" + httplink + "     " + curllink + "  " + netcatlink + " </td>");
-                                
+
                             } else {
                                 $(value).append("<td valign=\"middle\" class=\"monitortests\">N/A</td>");
                             }
@@ -562,7 +562,7 @@
             });
     }
         
-    if(location.pathname.indexOf('/tmui/Control/jspmap/tmui/locallb/virtual_server/resources.jsp') >= 0){
+    if(uriContains("/tmui/Control/jspmap/tmui/locallb/virtual_server/resources.jsp")){
 
         var selecteddefaultpool = $('input[name=default_pool_before]').val();
         if(selecteddefaultpool != 'NO_SELECTION'){
@@ -571,7 +571,7 @@
 
     }
 
-    if(document.location.pathname === "/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp"){
+    if(uriContains("/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp")){
         
 
         $("input[name=string_input], input[name=string_pair_value], input#string_add_button").on("keyup change input focus click", function(){
@@ -627,7 +627,7 @@
         })
     }, 30000);
     
-    if(document.location.pathname.indexOf("/tmui/Control/jspmap/tmui/locallb/profile/clientssl/create.jsp") >= 0){
+    if(uriContains("/tmui/Control/jspmap/tmui/locallb/profile/clientssl/create.jsp")){
         
         if(defaultClientSSLParentProfile !== ""){
             setTimeout(function(){
@@ -641,7 +641,7 @@
     }
 
 
-    if(document.location.pathname.indexOf("/tmui/Control/jspmap/tmui/locallb/profile/clientssl/properties.jsp") >= 0 || document.location.pathname.indexOf("/tmui/Control/jspmap/tmui/locallb/profile/clientssl/create.jsp") >= 0){
+    if(uriContains("/tmui/Control/jspmap/tmui/locallb/profile/clientssl/properties.jsp") || uriContains("/tmui/Control/jspmap/tmui/locallb/profile/clientssl/create.jsp")){
         matchCertAndKey();
     }
 
