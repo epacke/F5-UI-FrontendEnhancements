@@ -290,6 +290,7 @@
         $("#div_general_table").find("tr").not("#definition_ace_row").each(function(){
             $(this).find("td").eq(1).attr("colspan", 2);
         });
+        
          $("#div_general_table").find("tr#definition_ace_row").find("td").eq(1).after("<td id=\"dglist\" class=\"settings\"></td>");
 
         //Makes sure that the data group lists ends up in the top of the cell
@@ -297,19 +298,19 @@
         $("#div_general_table tbody tr#definition_ace_row td.settings").css("width","80%");
 
         //This command generates the data group lists (if any)
-        getDataGroupLists($("textarea#rule_definition").val())
+        getDataGroupListsFromRule($("textarea#rule_definition").val())
         
         $(document).on("keyup", function(){
             
             var iRuleContent = codeEditor.gSettings.editor.container.env.document.doc.$lines.join("\n");
             
-            getDataGroupLists(iRuleContent)
+            getDataGroupListsFromRule(iRuleContent)
             
         });
 
     }
-
-    function getDataGroupLists(str){
+    
+    function getDataGroupListsFromRule(str){
 
         var bracketcounter = 0;
         var tempstring = "";
