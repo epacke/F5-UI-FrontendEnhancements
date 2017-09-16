@@ -156,19 +156,12 @@
     /**************************************************************
     Make objects in the current partition bold
 
-    Bonus setting:
-    Make them super bold by setting both to 1
-
     Default:
     MakePartitionObjectsBold = true;
 
-    Options:
-    0 = No
-    1 = Yes
     **************************************************************/
 
     var MakePartitionObjectsBold = true;
-    var MakeSuperBold = false;
 
     /**************************************************************
     Add default certificate signing alternatives
@@ -377,7 +370,7 @@
         });
     }
     
-    if(EnableDefaultcsroptions == 1 && location.pathname.indexOf('/tmui/Control/jspmap/tmui/locallb/ssl_certificate/create.jsp') >= 0){
+    if(EnableDefaultcsroptions == 1 && uriContains("/tmui/Control/jspmap/tmui/locallb/ssl_certificate/create.jsp")){
 
         //A certificate is being created and the default certificate signing setting has been enabled
         var csrdropdown = '<select id="csrdropdownmenu">';
@@ -420,7 +413,7 @@
     
     }
 
-    if(location.pathname.indexOf('/tmui/Control/jspmap/tmui/locallb/ssl_certificate/create.jsp') >= 0){
+    if(uriContains('/tmui/Control/jspmap/tmui/locallb/ssl_certificate/create.jsp')){
 
 		$("input[name='certificate_name']").on("keyup", function(){
 			$("input[name='common_name']").val($(this).val().replace(/^star\./g, "*."));
@@ -433,29 +426,26 @@
 
     }
 
-    if( location.pathname.indexOf('/tmui/Control/jspmap/tmui/locallb/pool/member/properties.jsp') >= 0 ) {
+    if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/member/properties.jsp")) {
 
         if($("#member_address td").next().length && $("#member_port td").next().length){
             //Add global style
-            var css =   'a.monitortest {  position: relative;  display: inline;  color:#000000;} \
+            var css =   "a.monitortest {  position: relative;  display: inline;  color:#000000;} \
                         a.monitortest p {  position: absolute;  color: #000;  top:-50px;  left:-55px;\
                         background: #f7f6f5;  border: 1px solid #000;  padding-left:5px;  padding-right:5px;\
                         padding-top:2px;  padding-bottom:0px;  height: 30px;  text-align: center;  \
                         visibility: hidden;  border-radius: 2px;  font-size:12px;  font-weight:bold; }\
                         a:hover.monitortest p {  visibility: visible;  bottom: 30px;  z-index: 999; }\
                         .monitorcopybox { width:140px;font-weight:normal;font-size:10px;margin-bottom:1px;}\
-                        button.monitortestbutton { font-size:12px; }'
+                        button.monitortestbutton { font-size:12px; }";
 
             addGlobalStyle(css);
 
-            ip = $("#member_address td").next().text().trim();
-            port = $("#member_port td").next().text().trim();
+            ip = $("#member_address td.settings").text().trim();
+            port = $("#member_port td.settings").text().trim();
 
-            $('#general_table thead tr td').first().attr('colspan',3);
-
-            $('#general_table tbody tr').not('tr#member_health_monitors_status').find('td.settings').each(function(){
+            $('#general_table tbody tr td.settings').not('tr#member_health_monitors_status').each(function(){
                 $(this).attr("colspan", 2);
-
             });
 
             $('#health_monitor_table tbody tr').not(".monitorheaderrow").each(function(key,value){
@@ -468,19 +458,23 @@
                     port: port,
                     success: function(response) {
                         if($(response).find("#monitor_send_string").length){
+                            
                             sendstring = $(response).find("#monitor_send_string").text().trim();
                             type = $(response).find("#div_general_table tbody tr").find("td:contains('Type')").next().text().trim();
+
                             if(type == "HTTP" || type == "HTTPS"){
                                 var url = getMonitorRequestParameters(sendstring, type, ip, port,"http");
                                 var curlcommand = getMonitorRequestParameters(sendstring, type, ip, port,"curl");
                                 var netcatcommand = getMonitorRequestParameters(sendstring, type, ip, port,"netcat");
-                                var linkprefix = '<a href="javascript:void(0);" class="monitortest">';
-                                var httplink = linkprefix + '<input type="button" class="monitortestbutton" value="HTTP"/><p>HTTP link (CRTL+C)<br><input id="httplink" class="monitorcopybox" type="text" value=\'' + url +'\'></p></a>';
-                                var curllink = linkprefix + '<input type="button" class="monitortestbutton" value="Curl"/><p>Curl command (CRTL+C)<br><input id="curlcommand" class="monitorcopybox" type="text" value="' + curlcommand +'"></p></a>';
-                                var netcatlink = linkprefix + '<input type="button" class="monitortestbutton" value="Netcat"/><p>Netcat command (CRTL+C)<br><input id="netcatcommand" class="monitorcopybox" type="text" value=\'' + netcatcommand +'\'></p></a>';
-                                $(value).append('<td valign="middle">' + httplink + '     ' + curllink + ' ' + netcatlink + ' </td>');
+                                var linkprefix = "<a href=\"javascript:void(0);\" class=\"monitortest\">";
+                                var httplink = linkprefix + "<input type=\"button\" class=\"monitortestbutton\" value=\"HTTP\"/><p>HTTP link (CRTL+C)<br><input id=\"httplink\" class=\"monitorcopybox\" type=\"text\" value=\"" + url + "\"></p></a>";
+                                var curllink = linkprefix + "<input type=\"button\" class=\"monitortestbutton\" value=\"Curl\"/><p>Curl command (CRTL+C)<br><input id=\"curlcommand\" class=\"monitorcopybox\" type=\"text\" value=\"" + curlcommand + "\"></p></a>";
+                                var netcatlink = linkprefix + "<input type=\"button\" class=\"monitortestbutton\" value=\"Netcat\"/><p>Netcat command (CRTL+C)<br><input id=\"netcatcommand\" class=\"monitorcopybox\" type=\"text\" value='" + netcatcommand + "'></p></a>";
+
+                                $(value).append("<td valign=\"middle\">" + httplink + "     " + curllink + "  " + netcatlink + " </td>");
+                                
                             } else {
-                                $(value).append('<td valign="middle" class="monitortests">N/A</td>');
+                                $(value).append("<td valign=\"middle\" class=\"monitortests\">N/A</td>");
                             }
                         } else if ($(response).find("#div_configuration_table table tbody tr").find("td:contains('Send String')")) {
                             //Found a default monitor
