@@ -160,15 +160,15 @@
     Make them super bold by setting both to 1
 
     Default:
-    MakePartitionObjectsBold = 1;
+    MakePartitionObjectsBold = true;
 
     Options:
     0 = No
     1 = Yes
     **************************************************************/
 
-    var MakePartitionObjectsBold = 1;
-    var MakeSuperBold = 0;
+    var MakePartitionObjectsBold = true;
+    var MakeSuperBold = false;
 
     /**************************************************************
     Add default certificate signing alternatives
@@ -346,48 +346,34 @@
 
     //Change the data grouplist count
     if(uriContains("/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?")){    
-        $('select').attr('size', DatagroupListCount);
+        $("select").attr("size", DatagroupListCount);
     }
 
     //Set the default suffix of the HTTP monitors
-    if($('select[name=mon_type]').length){
-        if($('select[name=mon_type]').find(":selected").text().trim() == "HTTP"){
+    if($("select[name=mon_type]").length){
+        if($("select[name=mon_type]").find(":selected").text().trim() == "HTTP"){
 
-            var monitorname = $('input[name=monitor_name]').attr("value");
+            var monitorname = $("input[name=monitor_name]").attr("value");
 
-            if($('input[name=monitor_name]').length && monitorname == "") {
-                $('input[name=monitor_name]').attr("value", HttpMonitorSuffix);
-            } else if ($('input[name=monitor_name]').length && !(endsWith(monitorname, HttpMonitorSuffix))) {
+            if($("input[name=monitor_name]").length && monitorname == "") {
+                $("input[name=monitor_name]").attr("value", HttpMonitorSuffix);
+            } else if ($("input[name=monitor_name]").length && !(endsWith(monitorname, HttpMonitorSuffix))) {
                 monitorname = monitorname + HttpMonitorSuffix;
-                $('input[name=monitor_name]').attr("value", monitorname);
+                $("input[name=monitor_name]").attr("value", monitorname);
             }
         }
     }
 
    
-    
-    if(MakePartitionObjectsBold && location.pathname.indexOf('list.jsp') >= 0){
+    if(MakePartitionObjectsBold && uriContains('/list.jsp')){
 
         //Get the current partition
         currentpartition = getCookie("F5_CURRENT_PARTITION")
 
-        //If the Make superbold setting has been activated, grant the users wish
-        if(MakeSuperBold){
-            boldness = 800;
-        } else {
-            boldness = 700;
-        }
-
-        //Get all links in a table body with the id list_body
-        $('tbody#list_body tr td a').each(function(){
-            //Check if the link has a href attribute
-            if($(this).attr('href').length){
-                //Check if the link contains a reference to the current partition
-                if($(this).attr('href').indexOf('name=/' + currentpartition) > 0){
-                    //Make the text bold
-                    $(this).css('font-weight', boldness);
-                }
-            }
+        $("tbody#list_body tr td a").filter(function(){
+            return $(this).attr("href").indexOf("/" + currentpartition + "") >= 0
+        }).each(function(){
+            $(this).css('font-weight', 700);
         });
     }
     
