@@ -66,7 +66,7 @@
     var DatagroupListCount = 30;
 
     /**************************************************************
-    Set this to 1 if you want to catch tabs when writing iRulesCount
+    Set this to 1 if you want to catch tabs when writing iRules
 
     Default:
     CatchTab = 1;
@@ -145,13 +145,13 @@
     Parse data group lists in iRules
 
     Default:
-    ParseDataGroupLists = 1;
+    ParseDataGroupLists = true;
 
     Options:
     0 = No
     1 = Yes
     **************************************************************/
-    var ParseDataGroupLists = 1;
+    var ParseDataGroupLists = true;
 
     /**************************************************************
     Make objects in the current partition bold
@@ -270,264 +270,49 @@
     this.$ = this.jQuery = jQuery.noConflict(true);
 
     //Declare global ajax queue limit
-    var currentqueue = 0;
-    var totalrequests;
     var tamperDataGroupLists = new Array();
     var detectedarr = [];
     
+(function() {
+
+    //This is the popup text divs that pops up when hovering data group lists
     initiateBaloon();
 
-    function endsWith(str, suffix) {
-        return str.indexOf(suffix, str.length - suffix.length) !== -1;
-    }
-    
-    if(ParseDataGroupLists && location.pathname.indexOf("/tmui/Control/jspmap/tmui/locallb/rule/properties.jsp") >= 0){
+    //This section takes care of showing data group lists at the side of iRules
+    if(ParseDataGroupLists && uriContains("/tmui/Control/jspmap/tmui/locallb/rule/properties.jsp")){
 
         cacheDataGroupLists();
 
         //This part prepares the iRule definition table for the data group lists (adds a third column)
-        $("#div_general_table").find('.tablehead').find("td").attr("colspan", 3);
-        $("#div_general_table").find("tr").not("#definition_ace_row").each(function(){
+        $("table#general_table thead tr.tablehead td").attr("colspan", 3);
+        $("table#general_table tr").not("#definition_ace_row").each(function(){
             $(this).find("td").eq(1).attr("colspan", 2);
         });
-        
-         $("#div_general_table").find("tr#definition_ace_row").find("td").eq(1).after("<td id=\"dglist\" class=\"settings\"></td>");
+
+        $("table#general_table tr#definition_ace_row").append("<td id=\"dglist\" class=\"settings\"></td>");
 
         //Makes sure that the data group lists ends up in the top of the cell
-        $("#div_general_table").find("tr#definition_ace_row").find("td").eq(2).css("vertical-align","top");
+        $("table#general_table tr#definition_ace_row td#dglist").css({
+            "vertical-align": "top"
+        });
+
         $("#div_general_table tbody tr#definition_ace_row td.settings").css("width","80%");
 
         //This command generates the data group lists (if any)
-        getDataGroupListsFromRule($("textarea#rule_definition").val())
+        getDataGroupListsFromRule($("textarea#rule_definition").val());
         
+        //Update the list on every key stroke
         $(document).on("keyup", function(){
             
             var iRuleContent = codeEditor.gSettings.editor.container.env.document.doc.$lines.join("\n");
-            
-            getDataGroupListsFromRule(iRuleContent)
+            getDataGroupListsFromRule(iRuleContent);
             
         });
 
     }
-    
-    function getDataGroupListsFromRule(str){
 
-        var bracketcounter = 0;
-        var tempstring = "";
-        var idIterator = 0;
-        var missingDataGroupList = false;
-        
-        //Go through the iRule and check for brackets. Save the string between the brackets.
-        for(i=0;i<str.length;i++){
-
-            if(str[i] == "[" && bracketcounter == 0){
-                //A bracket has been found and if the bracketcounter is 0 this is the start of a command
-                bracketcounter = 1;
-            } else if(str[i] == "[") {
-                //A bracket has been found and since the bracket counter is larger than 0 this is a nested command.
-                bracketcounter +=1;
-            }
-
-            //The start of a command has been identified, save the character to a string
-            if(bracketcounter > 0){
-                tempstring += str[i];
-            }
-
-            if(str[i] == "]"){
-                
-                //if an end bracket comes along, decrease the bracket counter by one
-                bracketcounter += -1
-
-                //If the bracket counter is 0 after decreasing the bracket we have reached the end of a command
-                if(bracketcounter == 0){
-                    
-                    //Separate the different words in the command with a regexp
-                    //Regexp based on the allowed characters specified by F5 in this article:
-                    //https://support.f5.com/kb/en-us/solutions/public/6000/800/sol6869.html
-                    var commandarray = tempstring.match(/[a-zA-Z0-9-_./]+/g)
-
-                    //The actual command is the first word in the array. Later we'll be looking for class.
-                    var command = commandarray[0];
-
-                    //The subcommand is the second word. If class has been identified this will be match.
-                    var subcommand = commandarray[1];
-
-                    //Save the current partition
-                    currentpartition = getCookie("F5_CURRENT_PARTITION");
-
-                    //If the command is class. I've chosen not to include matchclass for now since it is being deprecated
-                    if(command == "class"){
-                        switch(subcommand){
-                            case "lookup":
-                            case "match":
-                            case "element":
-                            case "type":
-                            case "exists":
-                            case "size":
-                            case "startsearch":
-                                //These types always has the data group list in the last element
-                                var dg = commandarray[commandarray.length-1]
-
-                                //Check if a full path to a data group list has been specified and if it's legit
-                                if(dg.indexOf("/") >= 0){
-                                    dgarr = dg.split("/")
-                                    if(dgarr.length == 3){
-                                        currentpartition = dgarr[1];
-                                        dg = dgarr[2]
-                                    } else {
-                                        //An invalid data group list name, skip this one
-                                        continue;
-                                    }
-                                }
-                                break;
-                            case "anymore":
-                            case "donesearch":
-                                //These types always has the data group list in the third element
-                                var dg = commandarray[2]
-
-                                //Check if a full path to a data group list has been specified and if it's legit
-                                if(dg.indexOf("/") >= 0){
-                                    dgarr = dg.split("/");
-                                    if(dgarr.length == 3){
-                                        currentpartition = dgarr[1];
-                                    } else {
-                                        //An invalid data group list name, skip this one
-                                        continue;
-                                    }
-                                }
-                                break;
-                            case "search":
-                            case "names":
-                            case "get":
-                            case "nextelement":
-                                //Exclude options and find the data group list
-                                for(x=2;x<commandarray.length;x++){
-                                    if(commandarray[x][0] != "-"){
-                                        dg=commandarray[x];
-                                        break;
-                                    }
-                                }
-
-                                //Check if a full path to a data group list has been specified and if it's legit
-                                if(dg.indexOf("/") >= 0){
-                                    dgarr = dg.split("/")
-                                    if(dgarr.length == 3){
-                                        currentpartition = dgarr[1];
-                                    } else {
-                                        //An invalid data group list name, skip this one
-                                        continue;
-                                    }
-                                }
-                                break;
-
-                            default:
-                                continue;
-                        }
-
-                        //Check if the data group list has been detected before
-                        //If it hasn't, add it to the array of detected data group lists
-                        if(detectedarr.indexOf(dg) >= 0){
-                            continue;
-                        } else {
-                            detectedarr.push(dg);
-                        }
-
-                        //Check if the script has detected a previous data group list
-                        if($("td#dglist").html() == ""){
-                            $("td#dglist").html('<div id="dglabel"><span style="font-weight:bold">Detected Data group lists:</span><hr></div>')
-                            $("div#dglabel").append('<div id="Commondg"></div>')
-                        }
-
-                        idIterator++;
-                        
-                        if(tamperDataGroupLists.indexOf("/Common/" + dg) >= 0){
-                            if($('div#Commondg').text() == ""){
-                                $('div#Commondg').html('<span style="font-weight:bold">/Common:</span><br>')
-                            }
-
-                            $('div#Commondg').append('<a href="https://' + window.location.host + '/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?name=/Common/' + dg + '" id="' + "Common" + dg.replace('.','') + '">' + dg + '</a>' + '<br>');
-                            $('#Common' + dg.replace('.','')).balloon({ position: "left", css: { whitespace: "nowrap" }, showDuration: 0, hideDuration: 0, contents: parseDataGroupValues("/Common/" + dg) });
-
-                        } else if(tamperDataGroupLists.indexOf("/" + currentpartition + "/" + dg) >= 0){
-                            
-                            var divfriendlypartition = currentpartition.replace(".","");
-
-                            if(!($('div#' + divfriendlypartition + 'dg').length)){
-                                $('div#Commondg').before(('<div id="' + divfriendlypartition + 'dg" style="padding-bottom:5px;"><span style="font-weight:bold;">/' + currentpartition + ':</span><br></div>'))
-                            }
-                            
-                            $('div#' + divfriendlypartition + 'dg').append('<a href="https://' + window.location.host + '/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?name=/' + currentpartition + '/' + dg + '" id="' + divfriendlypartition + dg.replace('.','') + '">' + dg + '</a><br>');
-
-                            $('#' + divfriendlypartition + dg.replace('.','')).balloon({ position: "left", css: { whitespace: "nowrap" }, showDuration: 0, hideDuration: 0, contents: parseDataGroupValues("/" + currentpartition + "/" + dg) });
-                            
-                        } else {
-                            delete detectedarr[detectedarr.indexOf(dg)];
-                            $("input#properties_update").css("background", "red");
-                            $("input#properties_update").css("color", "white");
-                            $("input#properties_update").attr("value", "Update (MISSING DATA GROUP LISTS");
-                            missingDataGroupList = true;
-                        }
-
-                        tempstring = "";
-                    }
-                }
-            }
-
-            if(str[i] == "\n"){
-                bracketcounter = 0;
-                startindex = 0;
-                tempstring = "";
-            }
-        }
-        
-        if(missingDataGroupList === false){
-            $("input#properties_update").css("background", "rgb(221, 221, 221)");
-            $("input#properties_update").css("color", "black")
-            $("input#properties_update").attr("value", "Update");
-        }
-    }
-
-    //Parses data group list html to get the key/value pairs for the hover information
-
-    function parseDataGroupValues(dg){
-
-        var dgLink = 'https://' + window.location.host + '/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?name=' + dg;
-        var dghtml;
-
-        $.ajax({
-            url: dgLink,
-            type: "GET",
-            success: function(htmlresponse) {
-                dghtml = htmlresponse;       
-            },
-            async: false
-        });
-
-        matches = dghtml.match(/<option value="[^"]+(\\x0a)?.+?" >/g);
-        
-        //Set the header
-        html = '<span style="color:blue">Key</span> = <span style="color:red">Value</span>'
-        
-        if(matches){
-            for(i=0;i<matches.length;i++){
-                match = matches[i].replace('<option value="', '').replace('" >', '')
-                matcharr = match.split('\\x0a')
-
-                if(matcharr.length == 2){
-                    html += '<br><span style="color:blue">' + matcharr[0] + '</span> = <span style="color:red">' + matcharr[1] + '</span>'; 
-                } else {
-                    html += '<br><span style="color:blue">' + matcharr[0] + '</span> = <span style="color:red">""</span>'; 
-                }
-            }
-        } else {
-            html += "<br><span style=\"color:blue\">Empty data group list</span>";
-        }
-        
-        return html;
-    }
-
-    if($("#assigned_rules").length && $("#rule_references").length){
-        //Change the iRule selection choice
+    //Change the iRule selection choice to show more iRules
+    if(uriContains("/tmui/Control/form?__handler=/tmui/locallb/virtual_server/resources&__source=Manage")){
         assignedrules = $("#assigned_rules").attr('size', iRulesCount);
         rulereferences = $("#rule_references").attr('size', iRulesCount);
     }
@@ -559,104 +344,7 @@
         }
     }
 
-    //This function checks if a data group list exists or not
-    function checkDataGroupList(DGLName){
-
-        var DataGroupListLink = "https://" + window.location.host + "/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?name=" + DGLName;
-        var response = '';
-
-        //Request the iRule page to see if the instance exists or not
-        $.ajax({
-            url: DataGroupListLink,
-            type: "GET",
-            success: function(htmlresponse) {
-                response = htmlresponse;       
-            },
-            async: false
-        });
-
-        //Search for the string indicating if the instance exists or not
-        if (response.indexOf("Instance not found") >= 0){
-            return false;
-        } else {
-            return true;
-        }  
-    }
-
-    function cacheDataGroupLists(){
-
-        var DataGroupListLink = "https://" + window.location.host + "/tmui/Control/jspmap/tmui/locallb/datagroup/list.jsp";
-        var response = '';
-
-        //Request the iRule page to see if the instance exists or not
-        $.ajax({
-            url: DataGroupListLink,
-            type: "GET",
-            success: function(htmlresponse) {
-                response = htmlresponse;       
-            },
-            async: false
-        });
-
-        var dataGroupLists = $(response).find('table.list tbody#list_body tr td:nth-child(3) a');
-
-        for(i = 0; i < dataGroupLists.length; i++){
-            var link = dataGroupLists[i].href;
-            var name = link.split("name=")[1];
-            
-            tamperDataGroupLists.push(name);
-        }
-    }
-
-    //Get a cookie value. Used to get the current partition
-    //Shamelessly stolen from http://www.w3schools.com/js/js_cookies.asp
-
-    function getCookie(cname) {
-        var name = cname + "=";
-        var ca = document.cookie.split(';');
-        for(var i=0; i<ca.length; i++) {
-            var c = ca[i];
-            while (c.charAt(0)==' ') c = c.substring(1);
-            if (c.indexOf(name) == 0) return c.substring(name.length,c.length);
-        }
-        return "";
-    }
-
-    function deleteCookie(cname){
-	    document.cookie = cname + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC";
-    }
-
-	function setCookie(cname, cvalue) {
-
-		exdays=30;
-		var d = new Date();
-		d.setTime(d.getTime() + (exdays*24*60*60*1000));
-		var expires = "expires="+ d.toUTCString();
-		document.cookie = cname + "=" + cvalue + "; " + expires;
-	}
-
-	function replaceCookie(cname, cvalue){
-		if(getCookie(cname)){
-			deleteCookie(cname)
-		}
-
-		setCookie(cname,cvalue)
-
-	}
-
-	function getUrlVars(){
-
-		var vars = [], hash;
-		var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
-
-		for(var i = 0; i < hashes.length; i++){
-			hash = hashes[i].split('=');
-			vars.push(hash[0]);
-			vars[hash[0]] = hash[1];
-		}
-
-		return vars;
-	}
+    
 
     //Check if an iRules list in exists in the DOM
     //This one is a bit ugly because of iframes, F5's strange DOM tree and me not being able to find an alternative
@@ -755,7 +443,7 @@
         });
     }
     
-if(EnableDefaultcsroptions == 1 && location.pathname.indexOf('/tmui/Control/jspmap/tmui/locallb/ssl_certificate/create.jsp') >= 0){
+    if(EnableDefaultcsroptions == 1 && location.pathname.indexOf('/tmui/Control/jspmap/tmui/locallb/ssl_certificate/create.jsp') >= 0){
 
         //A certificate is being created and the default certificate signing setting has been enabled
         var csrdropdown = '<select id="csrdropdownmenu">';
@@ -800,8 +488,6 @@ if(EnableDefaultcsroptions == 1 && location.pathname.indexOf('/tmui/Control/jspm
 
     if(location.pathname.indexOf('/tmui/Control/jspmap/tmui/locallb/ssl_certificate/create.jsp') >= 0){
 
-    	
-
 		$("input[name='certificate_name']").on("keyup", function(){
 			$("input[name='common_name']").val($(this).val().replace(/^star\./g, "*."));
 		});
@@ -817,14 +503,15 @@ if(EnableDefaultcsroptions == 1 && location.pathname.indexOf('/tmui/Control/jspm
 
         if($("#member_address td").next().length && $("#member_port td").next().length){
             //Add global style
-            var css = 'a.monitortest {  position: relative;  display: inline;  color:#000000;} \
-            a.monitortest p {  position: absolute;  color: #000;  top:-50px;  left:-55px;\
-            background: #f7f6f5;  border: 1px solid #000;  padding-left:5px;  padding-right:5px;\
-            padding-top:2px;  padding-bottom:0px;  height: 30px;  text-align: center;  \
-            visibility: hidden;  border-radius: 2px;  font-size:12px;  font-weight:bold; }\
-            a:hover.monitortest p {  visibility: visible;  bottom: 30px;  z-index: 999; }\
-            .monitorcopybox { width:140px;font-weight:normal;font-size:10px;margin-bottom:1px;}\
-            button.monitortestbutton { font-size:12px; }'
+            var css =   'a.monitortest {  position: relative;  display: inline;  color:#000000;} \
+                        a.monitortest p {  position: absolute;  color: #000;  top:-50px;  left:-55px;\
+                        background: #f7f6f5;  border: 1px solid #000;  padding-left:5px;  padding-right:5px;\
+                        padding-top:2px;  padding-bottom:0px;  height: 30px;  text-align: center;  \
+                        visibility: hidden;  border-radius: 2px;  font-size:12px;  font-weight:bold; }\
+                        a:hover.monitortest p {  visibility: visible;  bottom: 30px;  z-index: 999; }\
+                        .monitorcopybox { width:140px;font-weight:normal;font-size:10px;margin-bottom:1px;}\
+                        button.monitortestbutton { font-size:12px; }'
+
             addGlobalStyle(css);
 
             ip = $("#member_address td").next().text().trim();
@@ -921,98 +608,32 @@ if(EnableDefaultcsroptions == 1 && location.pathname.indexOf('/tmui/Control/jspm
 
     }
 
-    //Taken from sourceforge
-    function addGlobalStyle(css) {
-        var head, style;
-        head = document.getElementsByTagName('head')[0];
-        if (!head) { return; }
-        style = document.createElement('style');
-        style.type = 'text/css';
-        style.innerHTML = css;
-        head.appendChild(style);
-    }
-    
-    function getMonitorRequestParameters(sendstring, type, ip, port, command){
-        var verb = "";
-        var uri = "";
-        var headers = [];
-        var sendstringarr = sendstring.split(" ");
 
-        verb = sendstringarr[0];
-        uri = sendstringarr[1].replace("\\r\\n", "");
+    if($('input[name="cert_key_chain_override"]').length){
+        $('input[name="cert_key_chain_override"]').on("click", matchCertAndKey)
 
-        if(type.indexOf("HTTPS") >=0){
-            protocol = 'https';
-        } else if(type.indexOf("HTTP") >=0){
-            protocol = 'http';
-        } else {
-            return "Invalid protocol"
-        }
-        //So far we only support HTTP GET request
-        if( verb === "GET" || verb === "HEAD"){
+            $('input[name="add_modal_button"]').on("mouseup", function(){
+                setTimeout(function(){
 
-            //Parse for headers
-            var headersarr = sendstring.split('\\r\\n');
+                    var currentPartition = getCookie("F5_CURRENT_PARTITION");
+                    var profileName = $("input[name='profile_name']").val();
 
-            if(headersarr.length > 2){
+                    console.log("select#cert option[value='/" + currentPartition + "/" + profileName + ".crt']")
 
-                for(var i in headersarr){
-
-                    var header = headersarr[i];
-
-                    if(header.indexOf(":") >= 0){
-                        if(header.split(":").length == 2){
-                            headers.push(header);
-                        }
+                    if($("select#cert option[value='/" + currentPartition + "/" + profileName + ".crt']").length > 0){
+                        $('select#cert').val("/" + currentPartition + "/" + profileName + ".crt");
+                        $('select#key').val("/" + currentPartition + "/" + profileName + ".key");
+                    } else if ($("select#cert option[value='/Common/" + profileName + ".crt']").length > 0){
+                        $('select#cert').val("/Common/" + profileName + ".crt");
+                        $('select#key').val("/Common/" + profileName + ".key");
                     }
-                }
-            }
 
-            if (command == "curl"){
+                    $('select#chain').val(defaultChain)
 
-                var commandstring = 'curl -vvv';
-
-                if (verb === "HEAD"){
-                    commandstring += " -I"
-                }
-
-                if(headers.length > 0){
-                    for(var i in headers){
-                       var headerarr = headers[i].split(":");
-                       var headername = headerarr[0].trim();
-                       var headervalue = headerarr[1].trim();
-
-                       /*Account for header values not enclosed in quotes
-               This is only needed in curl for Windows
-                       */
-                       /*
-                       if(!(headervalue.startsWith('\"') && headervalue.endsWith('\"'))){
-                          headervalue = '\"' + headervalue + '\"';
-                       }
-                       */
-
-                        headervalue = headervalue.replace(/\"/g,'\\&quot;');
-            commandstring += ' --header &quot;' + headername + ':' + headervalue + '&quot;';
-                    }
-                }
-
-                commandstring += ' ' + protocol + '://' + ip + ':' + port + uri
-
-            } else if ( command == "netcat"){
-                var commandstring = "echo -ne \"" + sendstring + "\" | nc " + ip + " " + port;
-            } else if ( command == "http"){
-                var commandstring = protocol + '://' + ip + ':' + port + uri;
-
-            } else {
-                var commandstring = "Invalid command"
-            }
-
-            return commandstring
-        } else {
-            return "Only GET requests are supported"
-        }
+                }, 500);
+            });
     }
-
+        
     if(location.pathname.indexOf('/tmui/Control/jspmap/tmui/locallb/virtual_server/resources.jsp') >= 0){
 
         var selecteddefaultpool = $('input[name=default_pool_before]').val();
@@ -1090,59 +711,458 @@ if(EnableDefaultcsroptions == 1 && location.pathname.indexOf('/tmui/Control/jspm
         }
 
     }
-    
-    function matchCertAndKey(){
 
-    	$('select#chain').val(defaultChain)
 
-        $('select#cert').on("change", function(){
-                   
-            certName = $(this).val();
-            probableKeyName = certName.replace(/\.crt$/, ".key");
-
-            $('select#key').val(probableKeyName);
-        
-            if(defaultChain !== ""){
-                $('select#chain').val(defaultChain)
-            }
-        
-        });    
-    }
-    
     if(document.location.pathname.indexOf("/tmui/Control/jspmap/tmui/locallb/profile/clientssl/properties.jsp") >= 0 || document.location.pathname.indexOf("/tmui/Control/jspmap/tmui/locallb/profile/clientssl/create.jsp") >= 0){
-    	matchCertAndKey();
+        matchCertAndKey();
     }
 
-        
-    if($('input[name="cert_key_chain_override"]').length){
-        $('input[name="cert_key_chain_override"]').on("click", matchCertAndKey)
 
-		    $('input[name="add_modal_button"]').on("mouseup", function(){
-				setTimeout(function(){
+})();
 
-					var currentPartition = getCookie("F5_CURRENT_PARTITION");
-			    	var profileName = $("input[name='profile_name']").val();
 
-			    	console.log("select#cert option[value='/" + currentPartition + "/" + profileName + ".crt']")
 
-			    	if($("select#cert option[value='/" + currentPartition + "/" + profileName + ".crt']").length > 0){
-			    		$('select#cert').val("/" + currentPartition + "/" + profileName + ".crt");
-			    		$('select#key').val("/" + currentPartition + "/" + profileName + ".key");
-			    	} else if ($("select#cert option[value='/Common/" + profileName + ".crt']").length > 0){
-			    		$('select#cert').val("/Common/" + profileName + ".crt");
-			    		$('select#key').val("/Common/" + profileName + ".key");
-			    	}
+function endsWith(str, suffix) {
+    return str.indexOf(suffix, str.length - suffix.length) !== -1;
+}
 
-			    	$('select#chain').val(defaultChain)
 
-				}, 500);
-			});
-    }
-        
-        
+//Parses data group list html to get the key/value pairs for the hover information
+
+function parseDataGroupValues(dg){
+
+    var dgLink = 'https://' + window.location.host + '/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?name=' + dg;
+    var dghtml;
+
+    $.ajax({
+        url: dgLink,
+        type: "GET",
+        success: function(htmlresponse) {
+            dghtml = htmlresponse;       
+        },
+        async: false
+    });
+
+    matches = dghtml.match(/<option value="[^"]+(\\x0a)?.+?" >/g);
     
+    //Set the header
+    html = '<span style="color:blue">Key</span> = <span style="color:red">Value</span>'
+    
+    if(matches){
+        for(i=0;i<matches.length;i++){
+            match = matches[i].replace('<option value="', '').replace('" >', '')
+            matcharr = match.split('\\x0a')
+
+            if(matcharr.length == 2){
+                html += '<br><span style="color:blue">' + matcharr[0] + '</span> = <span style="color:red">' + matcharr[1] + '</span>'; 
+            } else {
+                html += '<br><span style="color:blue">' + matcharr[0] + '</span> = <span style="color:red">""</span>'; 
+            }
+        }
+    } else {
+        html += "<br><span style=\"color:blue\">Empty data group list</span>";
+    }
+    
+    return html;
+}
+
+
+//Taken from sourceforge
+function addGlobalStyle(css) {
+    var head, style;
+    head = document.getElementsByTagName('head')[0];
+    if (!head) { return; }
+    style = document.createElement('style');
+    style.type = 'text/css';
+    style.innerHTML = css;
+    head.appendChild(style);
+}
+
+function getMonitorRequestParameters(sendstring, type, ip, port, command){
+    var verb = "";
+    var uri = "";
+    var headers = [];
+    var sendstringarr = sendstring.split(" ");
+
+    verb = sendstringarr[0];
+    uri = sendstringarr[1].replace("\\r\\n", "");
+
+    if(type.indexOf("HTTPS") >=0){
+        protocol = 'https';
+    } else if(type.indexOf("HTTP") >=0){
+        protocol = 'http';
+    } else {
+        return "Invalid protocol"
+    }
+    //So far we only support HTTP GET request
+    if( verb === "GET" || verb === "HEAD"){
+
+        //Parse for headers
+        var headersarr = sendstring.split('\\r\\n');
+
+        if(headersarr.length > 2){
+
+            for(var i in headersarr){
+
+                var header = headersarr[i];
+
+                if(header.indexOf(":") >= 0){
+                    if(header.split(":").length == 2){
+                        headers.push(header);
+                    }
+                }
+            }
+        }
+
+        if (command == "curl"){
+
+            var commandstring = 'curl -vvv';
+
+            if (verb === "HEAD"){
+                commandstring += " -I"
+            }
+
+            if(headers.length > 0){
+                for(var i in headers){
+                   var headerarr = headers[i].split(":");
+                   var headername = headerarr[0].trim();
+                   var headervalue = headerarr[1].trim();
+
+                   /*Account for header values not enclosed in quotes
+           This is only needed in curl for Windows
+                   */
+                   /*
+                   if(!(headervalue.startsWith('\"') && headervalue.endsWith('\"'))){
+                      headervalue = '\"' + headervalue + '\"';
+                   }
+                   */
+
+                    headervalue = headervalue.replace(/\"/g,'\\&quot;');
+        commandstring += ' --header &quot;' + headername + ':' + headervalue + '&quot;';
+                }
+            }
+
+            commandstring += ' ' + protocol + '://' + ip + ':' + port + uri
+
+        } else if ( command == "netcat"){
+            var commandstring = "echo -ne \"" + sendstring + "\" | nc " + ip + " " + port;
+        } else if ( command == "http"){
+            var commandstring = protocol + '://' + ip + ':' + port + uri;
+
+        } else {
+            var commandstring = "Invalid command"
+        }
+
+        return commandstring
+    } else {
+        return "Only GET requests are supported"
+    }
+}
+
+    
+
+function matchCertAndKey(){
+
+	$('select#chain').val(defaultChain)
+
+    $('select#cert').on("change", function(){
+               
+        certName = $(this).val();
+        probableKeyName = certName.replace(/\.crt$/, ".key");
+
+        $('select#key').val(probableKeyName);
+    
+        if(defaultChain !== ""){
+            $('select#chain').val(defaultChain)
+        }
+    
+    });    
+}
+
+function getDataGroupListsFromRule(str){
+
+    var bracketcounter = 0;
+    var tempstring = "";
+    var idIterator = 0;
+    var missingDataGroupList = false;
+    
+    //Go through the iRule and check for brackets. Save the string between the brackets.
+    for(i=0;i<str.length;i++){
+
+        if(str[i] == "[" && bracketcounter == 0){
+            //A bracket has been found and if the bracketcounter is 0 this is the start of a command
+            bracketcounter = 1;
+        } else if(str[i] == "[") {
+            //A bracket has been found and since the bracket counter is larger than 0 this is a nested command.
+            bracketcounter +=1;
+        }
+
+        //The start of a command has been identified, save the character to a string
+        if(bracketcounter > 0){
+            tempstring += str[i];
+        }
+
+        if(str[i] == "]"){
+            
+            //if an end bracket comes along, decrease the bracket counter by one
+            bracketcounter += -1
+
+            //If the bracket counter is 0 after decreasing the bracket we have reached the end of a command
+            if(bracketcounter == 0){
+                
+                //Separate the different words in the command with a regexp
+                //Regexp based on the allowed characters specified by F5 in this article:
+                //https://support.f5.com/kb/en-us/solutions/public/6000/800/sol6869.html
+                var commandarray = tempstring.match(/[a-zA-Z0-9-_./]+/g)
+
+                //The actual command is the first word in the array. Later we'll be looking for class.
+                var command = commandarray[0];
+
+                //The subcommand is the second word. If class has been identified this will be match.
+                var subcommand = commandarray[1];
+
+                //Save the current partition
+                currentpartition = getCookie("F5_CURRENT_PARTITION");
+
+                //If the command is class. I've chosen not to include matchclass for now since it is being deprecated
+                if(command == "class"){
+                    switch(subcommand){
+                        case "lookup":
+                        case "match":
+                        case "element":
+                        case "type":
+                        case "exists":
+                        case "size":
+                        case "startsearch":
+                            //These types always has the data group list in the last element
+                            var dg = commandarray[commandarray.length-1]
+
+                            //Check if a full path to a data group list has been specified and if it's legit
+                            if(dg.indexOf("/") >= 0){
+                                dgarr = dg.split("/")
+                                if(dgarr.length == 3){
+                                    currentpartition = dgarr[1];
+                                    dg = dgarr[2]
+                                } else {
+                                    //An invalid data group list name, skip this one
+                                    continue;
+                                }
+                            }
+                            break;
+                        case "anymore":
+                        case "donesearch":
+                            //These types always has the data group list in the third element
+                            var dg = commandarray[2]
+
+                            //Check if a full path to a data group list has been specified and if it's legit
+                            if(dg.indexOf("/") >= 0){
+                                dgarr = dg.split("/");
+                                if(dgarr.length == 3){
+                                    currentpartition = dgarr[1];
+                                } else {
+                                    //An invalid data group list name, skip this one
+                                    continue;
+                                }
+                            }
+                            break;
+                        case "search":
+                        case "names":
+                        case "get":
+                        case "nextelement":
+                            //Exclude options and find the data group list
+                            for(x=2;x<commandarray.length;x++){
+                                if(commandarray[x][0] != "-"){
+                                    dg=commandarray[x];
+                                    break;
+                                }
+                            }
+
+                            //Check if a full path to a data group list has been specified and if it's legit
+                            if(dg.indexOf("/") >= 0){
+                                dgarr = dg.split("/")
+                                if(dgarr.length == 3){
+                                    currentpartition = dgarr[1];
+                                } else {
+                                    //An invalid data group list name, skip this one
+                                    continue;
+                                }
+                            }
+                            break;
+
+                        default:
+                            continue;
+                    }
+
+                    //Check if the data group list has been detected before
+                    //If it hasn't, add it to the array of detected data group lists
+                    if(detectedarr.indexOf(dg) >= 0){
+                        continue;
+                    } else {
+                        detectedarr.push(dg);
+                    }
+
+                    //Check if the script has detected a previous data group list
+                    if($("td#dglist").html() == ""){
+                        $("td#dglist").html('<div id="dglabel"><span style="font-weight:bold">Detected Data group lists:</span><hr></div>')
+                        $("div#dglabel").append('<div id="Commondg"></div>')
+                    }
+
+                    idIterator++;
+                    
+                    if(tamperDataGroupLists.indexOf("/Common/" + dg) >= 0){
+                        if($('div#Commondg').text() == ""){
+                            $('div#Commondg').html('<span style="font-weight:bold">/Common:</span><br>')
+                        }
+
+                        $('div#Commondg').append('<a href="https://' + window.location.host + '/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?name=/Common/' + dg + '" id="' + "Common" + dg.replace('.','') + '">' + dg + '</a>' + '<br>');
+                        $('#Common' + dg.replace('.','')).balloon({ position: "left", css: { whitespace: "nowrap" }, showDuration: 0, hideDuration: 0, contents: parseDataGroupValues("/Common/" + dg) });
+
+                    } else if(tamperDataGroupLists.indexOf("/" + currentpartition + "/" + dg) >= 0){
+                        
+                        var divfriendlypartition = currentpartition.replace(".","");
+
+                        if(!($('div#' + divfriendlypartition + 'dg').length)){
+                            $('div#Commondg').before(('<div id="' + divfriendlypartition + 'dg" style="padding-bottom:5px;"><span style="font-weight:bold;">/' + currentpartition + ':</span><br></div>'))
+                        }
+                        
+                        $('div#' + divfriendlypartition + 'dg').append('<a href="https://' + window.location.host + '/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?name=/' + currentpartition + '/' + dg + '" id="' + divfriendlypartition + dg.replace('.','') + '">' + dg + '</a><br>');
+
+                        $('#' + divfriendlypartition + dg.replace('.','')).balloon({ position: "left", css: { whitespace: "nowrap" }, showDuration: 0, hideDuration: 0, contents: parseDataGroupValues("/" + currentpartition + "/" + dg) });
+                        
+                    } else {
+                        delete detectedarr[detectedarr.indexOf(dg)];
+                        $("input#properties_update").css("background", "red");
+                        $("input#properties_update").css("color", "white");
+                        $("input#properties_update").attr("value", "Update (MISSING DATA GROUP LISTS");
+                        missingDataGroupList = true;
+                    }
+
+                    tempstring = "";
+                }
+            }
+        }
+
+        if(str[i] == "\n"){
+            bracketcounter = 0;
+            startindex = 0;
+            tempstring = "";
+        }
+    }
+    
+    if(missingDataGroupList === false){
+        $("input#properties_update").css("background", "rgb(221, 221, 221)");
+        $("input#properties_update").css("color", "black")
+        $("input#properties_update").attr("value", "Update");
+    }
+}
+
+
+//This function checks if a data group list exists or not
+function checkDataGroupList(DGLName){
+
+    var DataGroupListLink = "https://" + window.location.host + "/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?name=" + DGLName;
+    var response = '';
+
+    //Request the iRule page to see if the instance exists or not
+    $.ajax({
+        url: DataGroupListLink,
+        type: "GET",
+        success: function(htmlresponse) {
+            response = htmlresponse;       
+        },
+        async: false
+    });
+
+    //Search for the string indicating if the instance exists or not
+    if (response.indexOf("Instance not found") >= 0){
+        return false;
+    } else {
+        return true;
+    }  
+}
+
+function cacheDataGroupLists(){
+
+    var DataGroupListLink = "https://" + window.location.host + "/tmui/Control/jspmap/tmui/locallb/datagroup/list.jsp";
+    var response = '';
+
+    //Request the iRule page to see if the instance exists or not
+    $.ajax({
+        url: DataGroupListLink,
+        type: "GET",
+        success: function(htmlresponse) {
+            response = htmlresponse;       
+        },
+        async: false
+    });
+
+    var dataGroupLists = $(response).find('table.list tbody#list_body tr td:nth-child(3) a');
+
+    for(i = 0; i < dataGroupLists.length; i++){
+        var link = dataGroupLists[i].href;
+        var name = link.split("name=")[1];
         
-        
+        tamperDataGroupLists.push(name);
+    }
+}
+
+//Get a cookie value. Used to get the current partition
+//Shamelessly stolen from http://www.w3schools.com/js/js_cookies.asp
+
+function getCookie(cname) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for(var i=0; i<ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') c = c.substring(1);
+        if (c.indexOf(name) == 0) return c.substring(name.length,c.length);
+    }
+    return "";
+}
+
+function deleteCookie(cname){
+    document.cookie = cname + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+}
+
+function setCookie(cname, cvalue) {
+
+    exdays=30;
+    var d = new Date();
+    d.setTime(d.getTime() + (exdays*24*60*60*1000));
+    var expires = "expires="+ d.toUTCString();
+    document.cookie = cname + "=" + cvalue + "; " + expires;
+}
+
+function replaceCookie(cname, cvalue){
+    if(getCookie(cname)){
+        deleteCookie(cname)
+    }
+
+    setCookie(cname,cvalue)
+
+}
+
+function getUrlVars(){
+
+    var vars = [], hash;
+    var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+
+    for(var i = 0; i < hashes.length; i++){
+        hash = hashes[i].split('=');
+        vars.push(hash[0]);
+        vars[hash[0]] = hash[1];
+    }
+
+    return vars;
+}
+
+//Tests if browser uri contains string
+function uriContains(testUri) {
+    "use strict";
+    var uri = (document.location.pathname + document.location.search);
+    return uri.indexOf(testUri) >= 0;
+}
+
 
 /**
  * Hover balloon on elements without css and images.
