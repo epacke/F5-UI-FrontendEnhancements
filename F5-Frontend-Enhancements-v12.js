@@ -723,7 +723,6 @@ var poolStatuses;
 														<input type="button" value="Edit active list" id="bulkEdit"/>
 														<input type="button" value="Help" id="bulkHelp"/>
 														</td>
-														<td class="settings"></td>
 														`
 												)
 														
