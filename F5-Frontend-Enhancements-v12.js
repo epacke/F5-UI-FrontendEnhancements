@@ -333,11 +333,6 @@ var poolStatuses;
 
     }
 
-    //Change the data grouplist count
-    if(uriContains("/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?")){
-        $("select").attr("size", DatagroupListCount);
-    }
-
     //Set the default suffix of the HTTP monitors
     if($("select[name=mon_type]").length){
         if($("select[name=mon_type]").find(":selected").text().trim() == "HTTP"){
@@ -722,9 +717,147 @@ var poolStatuses;
 			}
 		})
 	}
+	
+	if(uriContains("/tmui/Control/jspmap/tmui/locallb/datagroup/create.jsp") || uriContains("/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp")){
+		
+		//Increase the size of the lists
+		$("select").attr("size", DatagroupListCount);
+		
+		//Add extra cell and buttons for bulk import
+		$("table#records thead tr.tablehead td").after(`<td>
+															<div class="title">Bulk import text</div>
+														</td>
+														`);
+		$("table#records tbody tr td.settings").after(`<td class="settings" id="dgbulkimport">
+														<textarea cols="60" rows="` + (DatagroupListCount + 8) + `" class="bulkcontent"/>
+														<br>
+														<input type="button" value="Merge the lists" id="bulkMerge"/>
+														<input type="button" value="Replace current list" id="bulkReplace"/>
+														<input type="button" value="Edit active list" id="bulkEdit"/>
+														<input type="button" value="Help" id="bulkHelp"/>
+														</td>
+														<td class="settings"></td>
+														`
+												)
+														
+	
+		//Attach the functions to the buttons
+		
+		$("input#bulkMerge").on("click", function(){
 
+			"use strict";
+			
+			//First get the data
+			var importListArr = $("textarea.bulkcontent:visible").val().split("\n");
+			var currentListArr = [];
+			$("select:visible").last().find("option").each(function(){
+				currentListArr.push($(this).text().trim()) 
+			})
+			
+			//Create objects from the arrays
+			var importObj = createDGListObject(importListArr);
+			var currentObj = createDGListObject(currentListArr);
 
+			for(var key in importObj){
+				if(!(key in currentObj)){
+					
+					var value = importObj[key];
+					var optionValue = value === "" ? key : (key + "\\x0a" + value);
+					var optionText = value === "" ? key : (key + " := " + value);
+					
+					$("select:visible").last().append("<option value=\"" + optionValue + "\" selected=\"\">" + optionText + "</option></select>");
+				}
+			}
+			
+		})
+		
+		$("input#bulkReplace").on("click", function(){
+
+			"use strict";
+			
+			//First get the data
+			var importListArr = $("textarea.bulkcontent:visible").val().split("\n");
+
+			//Create an object from the array
+			var importObj = createDGListObject(importListArr);
+			
+			//Remove current options
+			$("select:visible").last().find("option").remove();
+			
+			for(var key in importObj){
+				
+				var value = importObj[key];
+				var optionValue = value === "" ? key : (key + "\\x0a" + value);
+				var optionText = value === "" ? key : (key + " := " + value);
+					
+				$("select:visible").last().append("<option value=\"" + optionValue + "\" selected=\"\">" + optionText + "</option></select>");
+				
+			}
+			
+		})
+
+		$("input#bulkEdit").on("click", function(){
+			
+			var keyVals = []
+			
+			$("select:visible").last().find("option").each(function(){
+				keyVals.push($(this).text().trim())
+				$(this).remove();
+			})
+			
+			$("textarea.bulkcontent:visible").val(keyVals.join("\n"));
+			
+		})
+		
+		$("input#bulkHelp").on("click", function(){
+			alert(`Bulk import help:
+
+Merge the lists: 
+Takes all the records in the import text area, compares them to the active list and imports the records that does not have duplicate keys.
+This means that if "apple" := "banana" exists in the active list and the import list has "apple" := "banana", then "apple" := "banana" won't be imported.
+
+Replace the current list:
+Takes all the records in the import text area and replaces the active list. Duplicate records are ignored like with "Merge the lists".
+
+Edit active list:
+Moves all the records from the active list to the import list.
+`);
+		})
+
+	}
+	
+	
 })();
+
+function validateDGObject(lines){
+	//Validate that all records has one or no delimiter
+	return 	!(lines.some(function(line){
+				return (line.split(/\s*:=\s*/i).length > 2)
+			}));
+}
+
+function createDGListObject(lines){
+	
+	var bulkImportObj = {}
+	
+	if(validateDGObject(lines)){
+				
+		//Creating object and ignoring duplicates
+		lines.map(function(line){
+			
+			var lineArr = line.split(/\s*:=\s*/i)
+			var key = lineArr[0];
+			var value = lineArr[1] || "";
+			
+			if(!(key in bulkImportObj)){
+				bulkImportObj[key] = value;
+			}
+			
+		});
+	}
+	
+	return bulkImportObj
+}
 
 function getPoolStatuses(){
 	
@@ -1094,6 +1227,8 @@ function getDataGroupListsFromRule(str){
         $("input#properties_update").attr("value", "Update");
     }
 }
+
+
 
 
 //This function checks if a data group list exists or not
