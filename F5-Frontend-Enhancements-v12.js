@@ -537,8 +537,6 @@ var poolStatuses;
                     var currentPartition = getCookie("F5_CURRENT_PARTITION");
                     var profileName = $("input[name='profile_name']").val();
 
-                    console.log("select#cert option[value='/" + currentPartition + "/" + profileName + ".crt']")
-
                     if($("select#cert option[value='/" + currentPartition + "/" + profileName + ".crt']").length > 0){
                         $('select#cert').val("/" + currentPartition + "/" + profileName + ".crt");
                         $('select#key').val("/" + currentPartition + "/" + profileName + ".key");
@@ -605,18 +603,6 @@ var poolStatuses;
         })
 
     }
-
-    //Function to overcome the session timeout issues
-    setInterval(function(){
-         $.ajax({
-            url: "/tmui/Control/jspmap/tmui/locallb/profile/xml/list.jsp",
-            type: "GET",
-            success: function() {
-                console.log("Refresh triggered");
-            },
-            async: true
-        })
-    }, 30000);
 
     if(uriContains("/tmui/Control/jspmap/tmui/locallb/profile/clientssl/create.jsp")){
 
