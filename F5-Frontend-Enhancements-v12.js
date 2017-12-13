@@ -31,6 +31,7 @@
 			Preventing edited data group list entries from being saved
 			Making data-group list parsing more performant
 			Script will automatically match client ssl profile name with certificates and keys using the same name
+    2.0.1   Fixing a bug where the data group list type select box is expanded
 	
 */
 
@@ -755,7 +756,7 @@ if(version.split(".")[0] === "12"){
 		if(uriContains("/tmui/Control/jspmap/tmui/locallb/datagroup/create.jsp") || uriContains("/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp")){
 			
 			//Increase the size of the lists
-			$("select").attr("size", DatagroupListCount);
+			$("select").not("#datagroup_type_select").attr("size", DatagroupListCount);
 			
 			//Add extra cell and buttons for bulk import
 			$("table#records thead tr.tablehead td").after(`<td>
