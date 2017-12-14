@@ -483,7 +483,7 @@ if(version.split(".")[0] === "12"){
 
 							} else if ($(response).find("#div_configuration_table table tbody tr td:contains('Send String')")) {
 
-								// Found a default monitor
+								// Default monitors does not have the same page structure as the normal ones. Needs special treatment.
 								var sendstring = $(response).find("#div_configuration_table table tbody tr").find("td:contains('Send String')").next().text().trim();
 								var type = $(response).find("#general_table tbody tr").find("td:contains('Type')").next().text().trim();
 
@@ -491,15 +491,22 @@ if(version.split(".")[0] === "12"){
 
                             if(type == "HTTP" || type == "HTTPS"){
 
-                                var url = getMonitorRequestParameters(sendstring, type, ip, port,"http");
-                                var curlcommand = getMonitorRequestParameters(sendstring, type, ip, port,"curl");
-                                var netcatcommand = getMonitorRequestParameters(sendstring, type, ip, port,"netcat");
-                                var linkprefix = "<a href=\"javascript:void(0);\" class=\"monitortest\">";
-                                var httplink = linkprefix + "<input type=\"button\" class=\"monitortestbutton\" value=\"HTTP\"/><p>HTTP link (CRTL+C)<br><input id=\"httplink\" class=\"monitorcopybox\" type=\"text\" value=\"" + url + "\"></p></a>";
-                                var curllink = linkprefix + "<input type=\"button\" class=\"monitortestbutton\" value=\"Curl\"/><p>Curl command (CRTL+C)<br><input id=\"curlcommand\" class=\"monitorcopybox\" type=\"text\" value=\"" + curlcommand + "\"></p></a>";
-                                var netcatlink = linkprefix + "<input type=\"button\" class=\"monitortestbutton\" value=\"Netcat\"/><p>Netcat command (CRTL+C)<br><input id=\"netcatcommand\" class=\"monitorcopybox\" type=\"text\" value='" + netcatcommand + "'></p></a>";
+                                var commands = getMonitorRequestParameters(sendstring, type, ip, port);
+                                
+                                var html = "";                             
+                                
+                                for(var c in commands.commands){
+                                    
+                                    html += `<a href="javascript:void(0);" class="monitortest">
+                                                <input type="button" class="monitortestbutton" value="` + c + `"/>
+                                                <p>` + commands.commands[c].title + `(CRTL+C)
+                                                <br>
+                                                <input id="` + c.toLowerCase() + `link" class="monitorcopybox" type="text" value="` + commands.commands[c].string + `">
+                                                </p>
+                                            </a>`;
+                                }
 
-                                $(value).append("<td valign=\"middle\">" + httplink + "     " + curllink + "  " + netcatlink + " </td>");
+                                $(value).append("<td valign=\"middle\">" + html + " </td>");
 
                             } else {
                                 $(value).append("<td valign=\"middle\" class=\"monitortests\">N/A</td>");
@@ -513,12 +520,12 @@ if(version.split(".")[0] === "12"){
 
 				//Attach an onmouseover function which focuses and selects the text
 				if($('.monitortest').length){
-				$('.monitortest').mouseover(function(){
-									$(this).find("p input").focus();
-									$(this).find("p input").select();
-									var inputstring = $(this).find('p input').attr('value');
-									$(this).attr("href", "javascript:prompt('The command','" + inputstring.replace(/\'/g,"\\'") + "')");
-								});
+    				$('.monitortest').mouseover(function(){
+    					$(this).find("p input").focus();
+    					$(this).find("p input").select();
+    					var inputstring = $(this).find('p input').attr('value');
+    					$(this).attr("href", "javascript:prompt('The command','" + inputstring.replace(/\'/g,"\\'") + "')");
+    				});
 				}
 
 				//Remove the parent padding first
@@ -876,6 +883,11 @@ Moves all the records from the active list to the import list.
 	})();
 }
 
+function log(s, c = "black"){
+    console.log("%c " + s, "color: " + c);
+}
+
+
 function validateDGObject(lines){
 	//Validate that all records has one or no delimiter
 	return 	!(lines.some(function(line){
@@ -966,22 +978,38 @@ function addGlobalStyle(css) {
     head.appendChild(style);
 }
 
-function getMonitorRequestParameters(sendstring, type, ip, port, command){
-    var verb = "";
-    var uri = "";
+function getMonitorRequestParameters(sendstring, type, ip, port){
+
+    "use strict";
     var headers = [];
-    var sendstringarr = sendstring.split(" ");
+    var protocol = "";
 
-    verb = sendstringarr[0];
-    uri = sendstringarr[1].replace("\\r\\n", "");
-
-    if(type.indexOf("HTTPS") >=0){
-        protocol = 'https';
-    } else if(type.indexOf("HTTP") >=0){
-        protocol = 'http';
-    } else {
-        return "Invalid protocol"
+    var commandObj = {
+        "commands": {
+            "Curl": {
+                "title": "",
+                "command": ""
+            },
+            "Netcat": {
+                "title": "",
+                "command": ""
+            },
+            "HTTP": {
+                "title": "",
+                "command": ""
+            }
+        },
+        "success": true
     }
+
+    var sendstringarr = sendstring.split(" ");
+    var verb = sendstringarr[0];
+    var uri = sendstringarr[1].replace("\\r\\n", "");
+    
+    if (/^HTTP[S]?$/.test(type)){
+        protocol = type.toLowerCase();
+    }
+
     //So far we only support HTTP GET request
     if( verb === "GET" || verb === "HEAD"){
 
@@ -1002,49 +1030,39 @@ function getMonitorRequestParameters(sendstring, type, ip, port, command){
             }
         }
 
-        if (command == "curl"){
+        var commandstring = 'curl -vvv';
 
-            var commandstring = 'curl -vvv';
-
-            if (verb === "HEAD"){
-                commandstring += " -I"
-            }
-
-            if(headers.length > 0){
-                for(var i in headers){
-                   var headerarr = headers[i].split(":");
-                   var headername = headerarr[0].trim();
-                   var headervalue = headerarr[1].trim();
-
-                   /*Account for header values not enclosed in quotes
-           This is only needed in curl for Windows
-                   */
-                   /*
-                   if(!(headervalue.startsWith('\"') && headervalue.endsWith('\"'))){
-                      headervalue = '\"' + headervalue + '\"';
-                   }
-                   */
-
-                    headervalue = headervalue.replace(/\"/g,'\\&quot;');
-        commandstring += ' --header &quot;' + headername + ':' + headervalue + '&quot;';
-                }
-            }
-
-            commandstring += ' ' + protocol + '://' + ip + ':' + port + uri
-
-        } else if ( command == "netcat"){
-            var commandstring = "echo -ne \"" + sendstring + "\" | nc " + ip + " " + port;
-        } else if ( command == "http"){
-            var commandstring = protocol + '://' + ip + ':' + port + uri;
-
-        } else {
-            var commandstring = "Invalid command"
+        if (verb === "HEAD"){
+            commandstring += " -I"
         }
 
-        return commandstring
+        if(headers.length > 0){
+            for(var i in headers){
+               var headerarr = headers[i].split(":");
+               var headername = headerarr[0].trim();
+               var headervalue = headerarr[1].trim();
+
+               headervalue = headervalue.replace(/\"/g,'\\&quot;');
+               commandstring += ' --header &quot;' + headername + ':' + headervalue + '&quot;';
+            }
+        }
+
+        commandstring += ' ' + protocol + '://' + ip + ':' + port + uri
+
+        commandObj.commands.Curl.title = "Curl Command";
+        commandObj.commands.Curl.string = commandstring;
+
+        commandObj.commands.Netcat.title = "Netcat Command";
+        commandObj.commands.Netcat.string = "echo -ne \"" + sendstring + "\" | nc " + ip + " " + port;
+        
+        commandObj.commands.HTTP.title = "HTTP Link";
+        commandObj.commands.HTTP.string = protocol + '://' + ip + ':' + port + uri;
+
     } else {
-        return "Only GET requests are supported"
+        commandObj.success = false;
     }
+
+    return commandObj;
 }
 
 
