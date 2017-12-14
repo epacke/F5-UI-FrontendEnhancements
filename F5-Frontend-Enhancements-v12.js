@@ -32,6 +32,7 @@
 			Making data-group list parsing more performant
 			Script will automatically match client ssl profile name with certificates and keys using the same name
     2.0.1   Fixing a bug where the data group list type select box is expanded
+    2.0.2   Adding double clicking on selects
 	
 */
 
@@ -312,33 +313,6 @@ if(version.split(".")[0] === "12"){
 			rulereferences = $("#rule_references").attr("size", iRulesCount);
 		}
 
-		//Change the monitor count in the pool properties page
-		if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/properties.jsp?name") || uriContains("/tmui/Control/jspmap/tmui/locallb/pool/create.jsp")){
-			$("#monitor_rule").attr("size", MonitorCount);
-			$("#available_monitor_select").attr("size", MonitorCount);
-		}
-
-		 //Check if a pool is being created
-		if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/create.jsp")){
-
-			//Set the default pool name suffix
-			$("#pool_name").find("input[name=name]").attr("value", DefaultPoolName);
-
-			//Set the default action on pool down value
-			$("#action_on_service_down").find("option[value=\"" + DefaultActionOnPoolDown + "\"]").attr("SELECTED", "");
-
-			//Set the default LB Method
-			$("#lb_mode").find("option[value=\"" + DefaultLBMethod + "\"]").attr("SELECTED", "");
-
-			//If configured, choose node as default when selecting pool members
-			if(ChooseNodeAsDefault){
-				$("#member_address_radio_address").attr("unchecked","");
-				$("#member_address_radio_node").attr("checked","");
-				$("#member_address_radio_node").click();
-			}
-
-		}
-
 		//Set the default suffix of the HTTP monitors
 		if($("select[name=mon_type]").length){
 			if($("select[name=mon_type]").find(":selected").text().trim() == "HTTP"){
@@ -423,6 +397,48 @@ if(version.split(".")[0] === "12"){
 
 		}
 
+        /****************************************************************************************************
+        *
+        *                                      Pool enchancements
+        *
+        ****************************************************************************************************/
+
+        if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/properties.jsp?name") || uriContains("/tmui/Control/jspmap/tmui/locallb/pool/create.jsp")){
+            
+            // Increase the select box sizes            
+            $("#monitor_rule").attr("size", MonitorCount);
+            $("#available_monitor_select").attr("size", MonitorCount);
+
+            // Add double click feature
+            addDoubleClick("monitor_rule", "available_monitor_select_button");
+            addDoubleClick("available_monitor_select", "monitor_rule_button");
+        
+        }
+
+        if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/create.jsp")){
+
+            //Set the default pool name suffix
+            $("#pool_name").find("input[name=name]").attr("value", DefaultPoolName);
+
+            //Set the default action on pool down value
+            $("#action_on_service_down").find("option[value=\"" + DefaultActionOnPoolDown + "\"]").attr("SELECTED", "");
+
+            //Set the default LB Method
+            $("#lb_mode").find("option[value=\"" + DefaultLBMethod + "\"]").attr("SELECTED", "");
+
+            //If configured, choose node as default when selecting pool members
+            if(ChooseNodeAsDefault){
+                $("#member_address_radio_address").attr("unchecked","");
+                $("#member_address_radio_node").attr("checked","");
+                $("#member_address_radio_node").click();
+            }
+
+            // Add double click feature
+            addDoubleClick("monitor_rule", "available_monitor_select_button");
+            addDoubleClick("available_monitor_select", "monitor_rule_button");
+
+        }
+
 		if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/member/properties.jsp")) {
 
 			if($("#member_address td").next().length && $("#member_port td").next().length){
@@ -448,52 +464,48 @@ if(version.split(".")[0] === "12"){
 				$('#health_monitor_table tbody tr').not(".monitorheaderrow").each(function(key,value){
 
 					var monitorurl = $(value).find('td a').attr("href");
+
 					$.ajax({
 						url: "https://" + window.location.host + monitorurl,
 						type: "GET",
 						ip: ip,
 						port: port,
 						success: function(response) {
+
+                            "use strict";
+
+                            var type = "";
+
 							if($(response).find("#monitor_send_string").length){
 
 								sendstring = $(response).find("#monitor_send_string").text().trim();
-								type = $(response).find("#div_general_table tbody tr").find("td:contains('Type')").next().text().trim();
+								type = $(response).find("#div_general_table tbody tr td:contains('Type')").next().text().trim();
 
-								if(type == "HTTP" || type == "HTTPS"){
-									var url = getMonitorRequestParameters(sendstring, type, ip, port,"http");
-									var curlcommand = getMonitorRequestParameters(sendstring, type, ip, port,"curl");
-									var netcatcommand = getMonitorRequestParameters(sendstring, type, ip, port,"netcat");
-									var linkprefix = "<a href=\"javascript:void(0);\" class=\"monitortest\">";
-									var httplink = linkprefix + "<input type=\"button\" class=\"monitortestbutton\" value=\"HTTP\"/><p>HTTP link (CRTL+C)<br><input id=\"httplink\" class=\"monitorcopybox\" type=\"text\" value=\"" + url + "\"></p></a>";
-									var curllink = linkprefix + "<input type=\"button\" class=\"monitortestbutton\" value=\"Curl\"/><p>Curl command (CRTL+C)<br><input id=\"curlcommand\" class=\"monitorcopybox\" type=\"text\" value=\"" + curlcommand + "\"></p></a>";
-									var netcatlink = linkprefix + "<input type=\"button\" class=\"monitortestbutton\" value=\"Netcat\"/><p>Netcat command (CRTL+C)<br><input id=\"netcatcommand\" class=\"monitorcopybox\" type=\"text\" value='" + netcatcommand + "'></p></a>";
+							} else if ($(response).find("#div_configuration_table table tbody tr td:contains('Send String')")) {
 
-									$(value).append("<td valign=\"middle\">" + httplink + "     " + curllink + "  " + netcatlink + " </td>");
+								// Found a default monitor
+								var sendstring = $(response).find("#div_configuration_table table tbody tr").find("td:contains('Send String')").next().text().trim();
+								var type = $(response).find("#general_table tbody tr").find("td:contains('Type')").next().text().trim();
 
-								} else {
-									$(value).append("<td valign=\"middle\" class=\"monitortests\">N/A</td>");
-								}
-							} else if ($(response).find("#div_configuration_table table tbody tr").find("td:contains('Send String')")) {
-								//Found a default monitor
-								sendstring = $(response).find("#div_configuration_table table tbody tr").find("td:contains('Send String')").next().text().trim();
-								type = $(response).find("#general_table tbody tr").find("td:contains('Type')").next().text().trim();
-
-								if(type == "HTTP" || type == "HTTPS"){
-									var url = getMonitorRequestParameters(sendstring, type, ip, port,"http");
-									var curlcommand = getMonitorRequestParameters(sendstring, type, ip, port,"curl");
-									var netcatcommand = getMonitorRequestParameters(sendstring, type, ip, port,"netcat");
-									var linkprefix = '<a href="javascript:void(0);" class="monitortest">';
-									var httplink = linkprefix + '<input type="button" class="monitortestbutton" value="HTTP"></input><p>HTTP link (CRTL+C)<br><input id="httplink" class="monitorcopybox" type="text" value=\'' + url + '\'></p></a>';
-									var curllink = linkprefix + '<input type="button" class="monitortestbutton" value="Curl"></input></button><p>Curl command (CRTL+C)<br><input id="curlcommand" class="monitorcopybox" type="text" value=\"' + curlcommand +'\"></p></a>';
-									var netcatlink = linkprefix + '<input type="button" class="monitortestbutton" value="Netcat"></input><p>Netcat command (CRTL+C)<br><input id="netcatcommand" class="monitorcopybox" type="text" value=\'' + netcatcommand +'\'></p></a>';
-									$(value).append('<td valign="middle" class="monitortests">' + httplink + '      ' + curllink + ' ' + netcatlink + ' </td>');
-								} else {
-									$(value).append('<td valign="middle" class="monitortests">N/A</td>');
-								}
-
-							} else {
-								$(value).append('<td valign="middle" class="monitortests">N/A</td>');
 							}
+
+                            if(type == "HTTP" || type == "HTTPS"){
+
+                                var url = getMonitorRequestParameters(sendstring, type, ip, port,"http");
+                                var curlcommand = getMonitorRequestParameters(sendstring, type, ip, port,"curl");
+                                var netcatcommand = getMonitorRequestParameters(sendstring, type, ip, port,"netcat");
+                                var linkprefix = "<a href=\"javascript:void(0);\" class=\"monitortest\">";
+                                var httplink = linkprefix + "<input type=\"button\" class=\"monitortestbutton\" value=\"HTTP\"/><p>HTTP link (CRTL+C)<br><input id=\"httplink\" class=\"monitorcopybox\" type=\"text\" value=\"" + url + "\"></p></a>";
+                                var curllink = linkprefix + "<input type=\"button\" class=\"monitortestbutton\" value=\"Curl\"/><p>Curl command (CRTL+C)<br><input id=\"curlcommand\" class=\"monitorcopybox\" type=\"text\" value=\"" + curlcommand + "\"></p></a>";
+                                var netcatlink = linkprefix + "<input type=\"button\" class=\"monitortestbutton\" value=\"Netcat\"/><p>Netcat command (CRTL+C)<br><input id=\"netcatcommand\" class=\"monitorcopybox\" type=\"text\" value='" + netcatcommand + "'></p></a>";
+
+                                $(value).append("<td valign=\"middle\">" + httplink + "     " + curllink + "  " + netcatlink + " </td>");
+
+                            } else {
+                                $(value).append("<td valign=\"middle\" class=\"monitortests\">N/A</td>");
+                            }
+
+
 						},
 						async: false
 					});
@@ -894,17 +906,14 @@ function createDGListObject(lines){
 	return bulkImportObj
 }
 
-function getPoolStatuses(){
-	
-
-	
-	return pools;
-}
-
 function endsWith(str, suffix) {
     return str.indexOf(suffix, str.length - suffix.length) !== -1;
 }
 
+//Credit to Michael Jenkins for this one. :)
+function addDoubleClick(el, btn) {
+    $("#" + el).dblclick(function() {  $("#" + btn).click(); });
+}
 
 //Parses data group list html to get the key/value pairs for the hover information
 
