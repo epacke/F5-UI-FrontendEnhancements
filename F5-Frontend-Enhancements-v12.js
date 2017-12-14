@@ -986,15 +986,15 @@ function getMonitorRequestParameters(sendstring, type, ip, port){
 
     var commandObj = {
         "commands": {
+            "HTTP": {
+                "title": "",
+                "command": ""
+            },
             "Curl": {
                 "title": "",
                 "command": ""
             },
             "Netcat": {
-                "title": "",
-                "command": ""
-            },
-            "HTTP": {
                 "title": "",
                 "command": ""
             }
