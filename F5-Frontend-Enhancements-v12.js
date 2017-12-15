@@ -307,12 +307,13 @@ if(version.split(".")[0] === "12"){
         *
         ****************************************************************************************************/
 
-        if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/properties.jsp?name") || uriContains("/tmui/Control/jspmap/tmui/locallb/pool/create.jsp")){
+        if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/properties.jsp?name")){
             improvePoolProperties();
         }
 
         if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/create.jsp")){
             improvePoolCreation();
+            improvePoolProperties();
         }
 
 		if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/member/properties.jsp")) {
@@ -1246,7 +1247,7 @@ function getMonitorRequestParameters(sendstring, type, ip, port){
  **************************************************************************/
 
 function improveClientSSLProfileCreation(){
-    
+
     if(defaultClientSSLParentProfile !== ""){
         setTimeout(function(){
             $('select#parent_profile_name').val(defaultClientSSLParentProfile);
