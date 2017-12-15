@@ -378,37 +378,13 @@ if(version.split(".")[0] === "12"){
 
         if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/properties.jsp?name") || uriContains("/tmui/Control/jspmap/tmui/locallb/pool/create.jsp")){
             
-            // Increase the select box sizes            
-            $("#monitor_rule").attr("size", MonitorCount);
-            $("#available_monitor_select").attr("size", MonitorCount);
-
-            // Add double click feature
-            addDoubleClick("monitor_rule", "available_monitor_select_button");
-            addDoubleClick("available_monitor_select", "monitor_rule_button");
+            improvePoolProperties();
         
         }
 
         if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/create.jsp")){
 
-            //Set the default pool name suffix
-            $("#pool_name").find("input[name=name]").attr("value", DefaultPoolName);
-
-            //Set the default action on pool down value
-            $("#action_on_service_down").find("option[value=\"" + DefaultActionOnPoolDown + "\"]").attr("SELECTED", "");
-
-            //Set the default LB Method
-            $("#lb_mode").find("option[value=\"" + DefaultLBMethod + "\"]").attr("SELECTED", "");
-
-            //If configured, choose node as default when selecting pool members
-            if(ChooseNodeAsDefault){
-                $("#member_address_radio_address").attr("unchecked","");
-                $("#member_address_radio_node").attr("checked","");
-                $("#member_address_radio_node").click();
-            }
-
-            // Add double click feature
-            addDoubleClick("monitor_rule", "available_monitor_select_button");
-            addDoubleClick("available_monitor_select", "monitor_rule_button");
+            improvePoolCreation();
 
         }
 
@@ -560,45 +536,7 @@ if(version.split(".")[0] === "12"){
 
 		if(uriContains("/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp")){
 
-
-			$("input[name=string_input], input[name=string_pair_value], input#string_add_button").on("keyup change input focus click", function(){
-
-				var key = $("input[name=string_input]").val();
-				var value = $("input[name=string_pair_value]").val();
-
-				var currentList = [];
-
-				$('select#class_string_item option').each(function(){
-					currentList.push($(this).val());
-				})
-
-				if(key.length){
-
-					var listItem = "";
-
-					if(value === ""){
-						listItem = key;
-					} else {
-						listItem = key + "\\x0a" + value;
-					}
-
-					if(currentList.indexOf(listItem) === -1){
-						$("input#update").prop("disabled", true);
-					} else {
-						$("input#update").prop("disabled", false);
-					}
-
-				} else {
-
-					$("input#update").prop("disabled", false);
-
-				}
-
-			})
-
-			$("input#edit_string").on("click", function(){
-				$("input#update").prop("disabled", true);
-			})
+            improveDataGroupListProperties();
 
 		}
 
@@ -894,6 +832,7 @@ function improveiRuleProperties(){
 
 }
 
+// Caches a list of all the data group lists available in Common and the current partition (if any)
 function cacheDataGroupLists(updateDGPage){
 
     var DataGroupListLink = "https://" + window.location.host + "/tmui/Control/jspmap/tmui/locallb/datagroup/list.jsp";
@@ -1136,38 +1075,59 @@ function getDataGroupListsFromRule(str){
     }
 }
 
+/**************************************************************************
+ *      
+ *                       Data group list improvements
+ *
+ **************************************************************************/
 
+function improveDataGroupListProperties(){
 
+    $("input[name=string_input], input[name=string_pair_value], input#string_add_button").on("keyup change input focus click", function(){
 
-//This function checks if a data group list exists or not
-function checkDataGroupList(DGLName){
+        var key = $("input[name=string_input]").val();
+        var value = $("input[name=string_pair_value]").val();
 
-    var DataGroupListLink = "https://" + window.location.host + "/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?name=" + DGLName;
-    var response = '';
+        var currentList = [];
 
-    //Request the iRule page to see if the instance exists or not
-    $.ajax({
-        url: DataGroupListLink,
-        type: "GET",
-        success: function(htmlresponse) {
-            response = htmlresponse;
-        },
-        async: false
-    });
+        $('select#class_string_item option').each(function(){
+            currentList.push($(this).val());
+        })
 
-    //Search for the string indicating if the instance exists or not
-    if (response.indexOf("Instance not found") >= 0){
-        return false;
-    } else {
-        return true;
-    }
+        if(key.length){
+
+            var listItem = "";
+
+            if(value === ""){
+                listItem = key;
+            } else {
+                listItem = key + "\\x0a" + value;
+            }
+
+            if(currentList.indexOf(listItem) === -1){
+                $("input#update").prop("disabled", true);
+            } else {
+                $("input#update").prop("disabled", false);
+            }
+
+        } else {
+
+            $("input#update").prop("disabled", false);
+
+        }
+
+    })
+
+    $("input#edit_string").on("click", function(){
+        $("input#update").prop("disabled", true);
+    })
 }
 
 function validateDGObject(lines){
     //Validate that all records has one or no delimiter
     return  !(lines.some(function(line){
-                return (line.split(/\s*:=\s*/i).length > 2)
-            }));
+        return (line.split(/\s*:=\s*/i).length > 2)
+    }));
 }
 
 
@@ -1194,35 +1154,53 @@ function createDGListObject(lines){
     return bulkImportObj
 }
 
-function log(s, c = "black"){
-    console.log("%c " + s, "color: " + c);
+/**************************************************************************
+ *      
+ *                        Pool improvements
+ *
+ **************************************************************************/
+
+function improvePoolProperties(){
+
+    // Increase the select box sizes            
+    $("#monitor_rule").attr("size", MonitorCount);
+    $("#available_monitor_select").attr("size", MonitorCount);
+
+    // Add double click feature
+    addDoubleClick("monitor_rule", "available_monitor_select_button");
+    addDoubleClick("available_monitor_select", "monitor_rule_button");
+
+}
+
+function improvePoolCreation(){
+
+    // Increase the select box sizes            
+    $("#monitor_rule").attr("size", MonitorCount);
+    $("#available_monitor_select").attr("size", MonitorCount);
+
+    // Add double click feature
+    addDoubleClick("monitor_rule", "available_monitor_select_button");
+    addDoubleClick("available_monitor_select", "monitor_rule_button");
+
+    //Set the default pool name suffix
+    $("#pool_name").find("input[name=name]").attr("value", DefaultPoolName);
+
+    //Set the default action on pool down value
+    $("#action_on_service_down").find("option[value=\"" + DefaultActionOnPoolDown + "\"]").attr("SELECTED", "");
+
+    //Set the default LB Method
+    $("#lb_mode").find("option[value=\"" + DefaultLBMethod + "\"]").attr("SELECTED", "");
+
+    //If configured, choose node as default when selecting pool members
+    if(ChooseNodeAsDefault){
+        $("#member_address_radio_address").attr("unchecked","");
+        $("#member_address_radio_node").attr("checked","");
+        $("#member_address_radio_node").click();
+    }
+    
 }
 
 
-
-
-
-function endsWith(str, suffix) {
-    return str.indexOf(suffix, str.length - suffix.length) !== -1;
-}
-
-//Credit to Michael Jenkins for this one. :)
-function addDoubleClick(el, btn) {
-    $("#" + el).dblclick(function() {  $("#" + btn).click(); });
-}
-
-
-
-//Taken from sourceforge
-function addGlobalStyle(css) {
-    var head, style;
-    head = document.getElementsByTagName('head')[0];
-    if (!head) { return; }
-    style = document.createElement('style');
-    style.type = 'text/css';
-    style.innerHTML = css;
-    head.appendChild(style);
-}
 
 function getMonitorRequestParameters(sendstring, type, ip, port){
 
@@ -1312,10 +1290,15 @@ function getMonitorRequestParameters(sendstring, type, ip, port){
 }
 
 
+/**************************************************************************
+ *      
+ *                       Client SSL Profile Improvements
+ *
+ **************************************************************************/
 
 function matchCertAndKey(){
 
-	$('select#chain').val(defaultChain)
+    $('select#chain').val(defaultChain)
 
     $('select#cert').on("change", function(){
 
@@ -1332,6 +1315,35 @@ function matchCertAndKey(){
 }
 
 
+/**************************************************************************
+ *      
+ *                       Generic functions
+ *
+ **************************************************************************/
+
+function log(s, c = "black"){
+    console.log("%c " + s, "color: " + c);
+}
+
+function endsWith(str, suffix) {
+    return str.indexOf(suffix, str.length - suffix.length) !== -1;
+}
+
+//Credit to Michael Jenkins for this one. :)
+function addDoubleClick(el, btn) {
+    $("#" + el).dblclick(function() {  $("#" + btn).click(); });
+}
+
+//Taken from sourceforge
+function addGlobalStyle(css) {
+    var head, style;
+    head = document.getElementsByTagName('head')[0];
+    if (!head) { return; }
+    style = document.createElement('style');
+    style.type = 'text/css';
+    style.innerHTML = css;
+    head.appendChild(style);
+}
 
 //Get a cookie value. Used to get the current partition
 //Shamelessly stolen from http://www.w3schools.com/js/js_cookies.asp
