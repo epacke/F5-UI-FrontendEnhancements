@@ -270,40 +270,13 @@ var version = versionInfo.split(" ")[1];
 if(version.split(".")[0] === "12"){
 	(function() {
 
-		
 		//This is the popup text divs that pops up when hovering data group lists
 		initiateBaloon();
 
 		//This section takes care of showing data group lists at the side of iRules
 		if(ParseDataGroupLists && uriContains("/tmui/Control/jspmap/tmui/locallb/rule/properties.jsp")){
 
-			cacheDataGroupLists();
-
-			//This part prepares the iRule definition table for the data group lists (adds a third column)
-			$("table#general_table thead tr.tablehead td").attr("colspan", 3);
-			$("table#general_table tr").not("#definition_ace_row").each(function(){
-				$(this).find("td").eq(1).attr("colspan", 2);
-			});
-
-			$("table#general_table tr#definition_ace_row").append("<td id=\"dglist\" class=\"settings\"></td>");
-
-			//Makes sure that the data group lists ends up in the top of the cell
-			$("table#general_table tr#definition_ace_row td#dglist").css({
-				"vertical-align": "top"
-			});
-
-			$("#div_general_table tbody tr#definition_ace_row td.settings").css("width","80%");
-
-			//This command generates the data group lists (if any)
-			getDataGroupListsFromRule($("textarea#rule_definition").val());
-
-			//Update the list on every key stroke
-			$(document).on("keyup", function(){
-
-				var iRuleContent = codeEditor.gSettings.editor.container.env.document.doc.$lines.join("\n");
-				getDataGroupListsFromRule(iRuleContent);
-
-			});
+			improveiRuleProperties();
 
 		}
 
@@ -883,48 +856,68 @@ Moves all the records from the active list to the import list.
 	})();
 }
 
-function log(s, c = "black"){
-    console.log("%c " + s, "color: " + c);
+/**************************************************************************
+ *      
+ *                              iRule improvements
+ *
+ **************************************************************************/
+
+function improveiRuleProperties(){
+
+    // Show the data group lists used in an iRule
+    cacheDataGroupLists(function(dataGroupLists){
+
+        //This part prepares the iRule definition table for the data group lists (adds a third column)
+        $("table#general_table thead tr.tablehead td").attr("colspan", 3);
+        $("table#general_table tr").not("#definition_ace_row").each(function(){
+            $(this).find("td").eq(1).attr("colspan", 2);
+        });
+
+        $("tr#definition_ace_row").append("<td id=\"dglist\" class=\"settings\"></td>").css({
+            "vertical-align": "top"
+        });
+
+        $("tr#definition_ace_row td.settings").css("width","80%");
+
+        //This command generates the data group lists (if any)
+        getDataGroupListsFromRule($("textarea#rule_definition").val());
+
+        //Update the list on every key stroke
+        $(document).on("keyup", function(){
+
+            var iRuleContent = codeEditor.gSettings.editor.container.env.document.doc.$lines.join("\n");
+            getDataGroupListsFromRule(iRuleContent);
+
+        });
+
+    });
+
 }
 
+function cacheDataGroupLists(updateDGPage){
 
-function validateDGObject(lines){
-	//Validate that all records has one or no delimiter
-	return 	!(lines.some(function(line){
-				return (line.split(/\s*:=\s*/i).length > 2)
-			}));
-}
+    var DataGroupListLink = "https://" + window.location.host + "/tmui/Control/jspmap/tmui/locallb/datagroup/list.jsp";
 
-function createDGListObject(lines){
-	
-	var bulkImportObj = {}
-	
-	if(validateDGObject(lines)){
-				
-		//Creating object and ignoring duplicates
-		lines.map(function(line){
-			
-			var lineArr = line.split(/\s*:=\s*/i)
-			var key = lineArr[0];
-			var value = lineArr[1] || "";
-			
-			if(!(key in bulkImportObj)){
-				bulkImportObj[key] = value;
-			}
-			
-		});
-	}
-	
-	return bulkImportObj
-}
+    //Request the iRule page to see if the instance exists or not
+    $.ajax({
+        url: DataGroupListLink,
+        type: "GET",
+        success: function(response) {
+            var dataGroupListLinks = $(response).find('table.list tbody#list_body tr td:nth-child(3) a');
 
-function endsWith(str, suffix) {
-    return str.indexOf(suffix, str.length - suffix.length) !== -1;
-}
+            for(i = 0; i < dataGroupListLinks.length; i++){
 
-//Credit to Michael Jenkins for this one. :)
-function addDoubleClick(el, btn) {
-    $("#" + el).dblclick(function() {  $("#" + btn).click(); });
+                var link = dataGroupListLinks[i].href;
+                var name = link.split("name=")[1];
+
+                tamperDataGroupLists.push(name);
+
+            }
+
+            updateDGPage();
+        }
+    });
+
 }
 
 //Parses data group list html to get the key/value pairs for the hover information
@@ -964,125 +957,6 @@ function parseDataGroupValues(dg){
     }
 
     return html;
-}
-
-
-//Taken from sourceforge
-function addGlobalStyle(css) {
-    var head, style;
-    head = document.getElementsByTagName('head')[0];
-    if (!head) { return; }
-    style = document.createElement('style');
-    style.type = 'text/css';
-    style.innerHTML = css;
-    head.appendChild(style);
-}
-
-function getMonitorRequestParameters(sendstring, type, ip, port){
-
-    "use strict";
-    var headers = [];
-    var protocol = "";
-
-    var commandObj = {
-        "commands": {
-            "HTTP": {
-                "title": "",
-                "command": ""
-            },
-            "Curl": {
-                "title": "",
-                "command": ""
-            },
-            "Netcat": {
-                "title": "",
-                "command": ""
-            }
-        },
-        "success": true
-    }
-
-    var sendstringarr = sendstring.split(" ");
-    var verb = sendstringarr[0];
-    var uri = sendstringarr[1].replace("\\r\\n", "");
-    
-    if (/^HTTP[S]?$/.test(type)){
-        protocol = type.toLowerCase();
-    }
-
-    //So far we only support HTTP GET request
-    if( verb === "GET" || verb === "HEAD"){
-
-        //Parse for headers
-        var headersarr = sendstring.split('\\r\\n');
-
-        if(headersarr.length > 2){
-
-            for(var i in headersarr){
-
-                var header = headersarr[i];
-
-                if(header.indexOf(":") >= 0){
-                    if(header.split(":").length == 2){
-                        headers.push(header);
-                    }
-                }
-            }
-        }
-
-        var commandstring = 'curl -vvv';
-
-        if (verb === "HEAD"){
-            commandstring += " -I"
-        }
-
-        if(headers.length > 0){
-            for(var i in headers){
-               var headerarr = headers[i].split(":");
-               var headername = headerarr[0].trim();
-               var headervalue = headerarr[1].trim();
-
-               headervalue = headervalue.replace(/\"/g,'\\&quot;');
-               commandstring += ' --header &quot;' + headername + ':' + headervalue + '&quot;';
-            }
-        }
-
-        commandstring += ' ' + protocol + '://' + ip + ':' + port + uri
-
-        commandObj.commands.Curl.title = "Curl Command";
-        commandObj.commands.Curl.string = commandstring;
-
-        commandObj.commands.Netcat.title = "Netcat Command";
-        commandObj.commands.Netcat.string = "echo -ne \"" + sendstring + "\" | nc " + ip + " " + port;
-        
-        commandObj.commands.HTTP.title = "HTTP Link";
-        commandObj.commands.HTTP.string = protocol + '://' + ip + ':' + port + uri;
-
-    } else {
-        commandObj.success = false;
-    }
-
-    return commandObj;
-}
-
-
-
-function matchCertAndKey(){
-
-	$('select#chain').val(defaultChain)
-
-    $('select#cert').on("change", function(){
-
-        certName = $(this).val();
-        probableKeyName = certName.replace(/\.crt$/, ".key");
-
-        $('select#key').val(probableKeyName);
-
-        if(defaultChain !== ""){
-            $('select#chain').val(defaultChain)
-        }
-
-    });
 }
 
 function getDataGroupListsFromRule(str){
@@ -1289,30 +1163,175 @@ function checkDataGroupList(DGLName){
     }
 }
 
-function cacheDataGroupLists(){
-
-    var DataGroupListLink = "https://" + window.location.host + "/tmui/Control/jspmap/tmui/locallb/datagroup/list.jsp";
-    var response = '';
-
-    //Request the iRule page to see if the instance exists or not
-    $.ajax({
-        url: DataGroupListLink,
-        type: "GET",
-        success: function(htmlresponse) {
-            response = htmlresponse;
-        },
-        async: false
-    });
-
-    var dataGroupLists = $(response).find('table.list tbody#list_body tr td:nth-child(3) a');
-
-    for(i = 0; i < dataGroupLists.length; i++){
-        var link = dataGroupLists[i].href;
-        var name = link.split("name=")[1];
-
-        tamperDataGroupLists.push(name);
-    }
+function validateDGObject(lines){
+    //Validate that all records has one or no delimiter
+    return  !(lines.some(function(line){
+                return (line.split(/\s*:=\s*/i).length > 2)
+            }));
 }
+
+
+function createDGListObject(lines){
+    
+    var bulkImportObj = {}
+    
+    if(validateDGObject(lines)){
+                
+        //Creating object and ignoring duplicates
+        lines.map(function(line){
+            
+            var lineArr = line.split(/\s*:=\s*/i)
+            var key = lineArr[0];
+            var value = lineArr[1] || "";
+            
+            if(!(key in bulkImportObj)){
+                bulkImportObj[key] = value;
+            }
+            
+        });
+    }
+    
+    return bulkImportObj
+}
+
+function log(s, c = "black"){
+    console.log("%c " + s, "color: " + c);
+}
+
+
+
+
+
+function endsWith(str, suffix) {
+    return str.indexOf(suffix, str.length - suffix.length) !== -1;
+}
+
+//Credit to Michael Jenkins for this one. :)
+function addDoubleClick(el, btn) {
+    $("#" + el).dblclick(function() {  $("#" + btn).click(); });
+}
+
+
+
+//Taken from sourceforge
+function addGlobalStyle(css) {
+    var head, style;
+    head = document.getElementsByTagName('head')[0];
+    if (!head) { return; }
+    style = document.createElement('style');
+    style.type = 'text/css';
+    style.innerHTML = css;
+    head.appendChild(style);
+}
+
+function getMonitorRequestParameters(sendstring, type, ip, port){
+
+    "use strict";
+    var headers = [];
+    var protocol = "";
+
+    var commandObj = {
+        "commands": {
+            "HTTP": {
+                "title": "",
+                "command": ""
+            },
+            "Curl": {
+                "title": "",
+                "command": ""
+            },
+            "Netcat": {
+                "title": "",
+                "command": ""
+            }
+        },
+        "success": true
+    }
+
+    var sendstringarr = sendstring.split(" ");
+    var verb = sendstringarr[0];
+    var uri = sendstringarr[1].replace("\\r\\n", "");
+    
+    if (/^HTTP[S]?$/.test(type)){
+        protocol = type.toLowerCase();
+    }
+
+    //So far we only support HTTP GET request
+    if( verb === "GET" || verb === "HEAD"){
+
+        //Parse for headers
+        var headersarr = sendstring.split('\\r\\n');
+
+        if(headersarr.length > 2){
+
+            for(var i in headersarr){
+
+                var header = headersarr[i];
+
+                if(header.indexOf(":") >= 0){
+                    if(header.split(":").length == 2){
+                        headers.push(header);
+                    }
+                }
+            }
+        }
+
+        var commandstring = 'curl -vvv';
+
+        if (verb === "HEAD"){
+            commandstring += " -I"
+        }
+
+        if(headers.length > 0){
+            for(var i in headers){
+               var headerarr = headers[i].split(":");
+               var headername = headerarr[0].trim();
+               var headervalue = headerarr[1].trim();
+
+               headervalue = headervalue.replace(/\"/g,'\\&quot;');
+               commandstring += ' --header &quot;' + headername + ':' + headervalue + '&quot;';
+            }
+        }
+
+        commandstring += ' ' + protocol + '://' + ip + ':' + port + uri
+
+        commandObj.commands.Curl.title = "Curl Command";
+        commandObj.commands.Curl.string = commandstring;
+
+        commandObj.commands.Netcat.title = "Netcat Command";
+        commandObj.commands.Netcat.string = "echo -ne \"" + sendstring + "\" | nc " + ip + " " + port;
+        
+        commandObj.commands.HTTP.title = "HTTP Link";
+        commandObj.commands.HTTP.string = protocol + '://' + ip + ':' + port + uri;
+
+    } else {
+        commandObj.success = false;
+    }
+
+    return commandObj;
+}
+
+
+
+function matchCertAndKey(){
+
+	$('select#chain').val(defaultChain)
+
+    $('select#cert').on("change", function(){
+
+        certName = $(this).val();
+        probableKeyName = certName.replace(/\.crt$/, ".key");
+
+        $('select#key').val(probableKeyName);
+
+        if(defaultChain !== ""){
+            $('select#chain').val(defaultChain)
+        }
+
+    });
+}
+
+
 
 //Get a cookie value. Used to get the current partition
 //Shamelessly stolen from http://www.w3schools.com/js/js_cookies.asp
@@ -1365,10 +1384,10 @@ function getUrlVars(){
 }
 
 //Tests if browser uri contains string
-function uriContains(testUri) {
+function uriContains(s) {
     "use strict";
     var uri = (document.location.pathname + document.location.search);
-    return uri.indexOf(testUri) >= 0;
+    return uri.indexOf(s) >= 0;
 }
 
 
@@ -1383,300 +1402,4 @@ function uriContains(testUri) {
  * @version: 0.6.2 - 2015/04/30
 **/
 
-function initiateBaloon(){
-    (function($) {
-      "use strict";
-      //-----------------------------------------------------------------------------
-      // Private
-      //-----------------------------------------------------------------------------
-      // Helper for meta programming
-      var Meta = {};
-      Meta.pos  = $.extend(["top", "bottom", "left", "right"], {camel: ["Top", "Bottom", "Left", "Right"]});
-      Meta.size = $.extend(["height", "width"], {camel: ["Height", "Width"]});
-      Meta.getRelativeNames = function(position) {
-        var idx = {
-          pos: {
-            o: position,                                           // origin
-            f: (position % 2 === 0) ? position + 1 : position - 1, // faced
-            p1: (position % 2 === 0) ? position : position - 1,
-            p2: (position % 2 === 0) ? position + 1 : position,
-            c1: (position < 2) ? 2 : 0,
-            c2: (position < 2) ? 3 : 1
-          },
-          size: {
-            p: (position < 2) ? 0 : 1, // parallel
-            c: (position < 2) ? 1 : 0  // cross
-          }
-        };
-        var names = {};
-        for(var m1 in idx) {
-          if(!names[m1]) names[m1] = {};
-          for(var m2 in idx[m1]) {
-            names[m1][m2] = Meta[m1][idx[m1][m2]];
-            if(!names.camel) names.camel = {};
-            if(!names.camel[m1]) names.camel[m1] = {};
-            names.camel[m1][m2] = Meta[m1].camel[idx[m1][m2]];
-          }
-        }
-        names.isTopLeft = (names.pos.o === names.pos.p1);
-        return names;
-      };
-      // Helper class to handle position and size as numerical pixels.
-      function NumericalBoxElement() { this.initialize.apply(this, arguments); }
-      (function() {
-        // Method factories
-        var Methods = {
-          setBorder: function(pos, isVertical) {
-            return function(value) {
-              this.$.css("border-" + pos.toLowerCase() + "-width", value + "px");
-              this["border" + pos] = value;
-              return (this.isActive) ? digitalize(this, isVertical) : this;
-            }
-          },
-          setPosition: function(pos, isVertical) {
-            return function(value) {
-              this.$.css(pos.toLowerCase(), value + "px");
-              this[pos.toLowerCase()] = value;
-              return (this.isActive) ? digitalize(this, isVertical) : this;
-            }
-          }
-        };
-        NumericalBoxElement.prototype = {
-          initialize: function($element) {
-            this.$ = $element;
-            $.extend(true, this, this.$.offset(), {center: {}, inner: {center: {}}});
-            for(var i = 0; i < Meta.pos.length; i++) {
-              this["border" + Meta.pos.camel[i]] = parseInt(this.$.css("border-" + Meta.pos[i] + "-width")) || 0;
-            }
-            this.active();
-          },
-          active: function() { this.isActive = true; digitalize(this); return this; },
-          inactive: function() { this.isActive = false; return this; }
-        };
-        for(var i = 0; i < Meta.pos.length; i++) {
-          NumericalBoxElement.prototype["setBorder" + Meta.pos.camel[i]] = Methods.setBorder(Meta.pos.camel[i], (i < 2));
-          if(i % 2 === 0)
-            NumericalBoxElement.prototype["set" + Meta.pos.camel[i]] = Methods.setPosition(Meta.pos.camel[i], (i < 2));
-        }
-        function digitalize(box, isVertical) {
-          if(isVertical == null) { digitalize(box, true); return digitalize(box, false); }
-          var m = Meta.getRelativeNames((isVertical) ? 0 : 2);
-          box[m.size.p] = box.$["outer" + m.camel.size.p]();
-          box[m.pos.f] = box[m.pos.o] + box[m.size.p];
-          box.center[m.pos.o] = box[m.pos.o] + box[m.size.p] / 2;
-          box.inner[m.pos.o] = box[m.pos.o] + box["border" + m.camel.pos.o];
-          box.inner[m.size.p] = box.$["inner" + m.camel.size.p]();
-          box.inner[m.pos.f] = box.inner[m.pos.o] + box.inner[m.size.p];
-          box.inner.center[m.pos.o] = box.inner[m.pos.f] + box.inner[m.size.p] / 2;
-          return box;
-        }
-      })();
-      // Adjust position of balloon body
-      function makeupBalloon($target, $balloon, options) {
-        $balloon.stop(true, true);
-        var outerTip, innerTip,
-          initTipStyle = {position: "absolute", height: "0", width: "0", border: "solid 0 transparent"},
-          target = new NumericalBoxElement($target),
-          balloon = new NumericalBoxElement($balloon);
-        balloon.setTop(-options.offsetY
-          + ((options.position && options.position.indexOf("top") >= 0) ? target.top - balloon.height
-          : ((options.position && options.position.indexOf("bottom") >= 0) ? target.bottom
-          : target.center.top - balloon.height / 2)));
-        balloon.setLeft(options.offsetX
-          + ((options.position && options.position.indexOf("left") >= 0) ? target.left - balloon.width
-          : ((options.position && options.position.indexOf("right") >= 0) ? target.right
-          : target.center.left - balloon.width / 2)));
-        if(options.tipSize > 0) {
-          // Add hidden balloon tips into balloon body.
-          if($balloon.data("outerTip")) { $balloon.data("outerTip").remove(); $balloon.removeData("outerTip"); }
-          if($balloon.data("innerTip")) { $balloon.data("innerTip").remove(); $balloon.removeData("innerTip"); }
-          outerTip = new NumericalBoxElement($("<div>").css(initTipStyle).appendTo($balloon));
-          innerTip = new NumericalBoxElement($("<div>").css(initTipStyle).appendTo($balloon));
-          // Make tip triangle, adjust position of tips.
-          var m;
-          for(var i = 0; i < Meta.pos.length; i++) {
-            m = Meta.getRelativeNames(i);
-            if(balloon.center[m.pos.c1] >= target[m.pos.c1] &&
-              balloon.center[m.pos.c1] <= target[m.pos.c2]) {
-              if(i % 2 === 0) {
-                if(balloon[m.pos.o] >= target[m.pos.o] && balloon[m.pos.f] >= target[m.pos.f]) break;
-              } else {
-                if(balloon[m.pos.o] <= target[m.pos.o] && balloon[m.pos.f] <= target[m.pos.f]) break;
-              }
-            }
-            m = null;
-          }
-          if(m) {
-            balloon["set" + m.camel.pos.p1]
-              (balloon[m.pos.p1] + ((m.isTopLeft) ? 1 : -1) * (options.tipSize - balloon["border" + m.camel.pos.o]));
-            makeTip(balloon, outerTip, m, options.tipSize, $balloon.css("border-" + m.pos.o + "-color"));
-            makeTip(balloon, innerTip, m, options.tipSize - 2 * balloon["border" + m.camel.pos.o], $balloon.css("background-color"));
-            $balloon.data("outerTip", outerTip.$).data("innerTip", innerTip.$);
-          } else {
-            $.each([outerTip.$, innerTip.$], function() { this.remove(); });
-          }
-        }
-        // Make up balloon tip.
-        function makeTip(balloon, tip, m, tipSize, color) {
-          var len = Math.round(tipSize / 1.7320508);
-          tip.inactive()
-            ["setBorder" + m.camel.pos.f](tipSize)
-            ["setBorder" + m.camel.pos.c1](len)
-            ["setBorder" + m.camel.pos.c2](len)
-            ["set" + m.camel.pos.p1]((m.isTopLeft) ? -tipSize : balloon.inner[m.size.p])
-            ["set" + m.camel.pos.c1](balloon.inner[m.size.c] / 2 - len)
-            .active()
-            .$.css("border-" + m.pos.f + "-color", color);
-        }
-      }
-      // True if the event comes from the target or balloon.
-      function isValidTargetEvent($target, e) {
-        var b = $target.data("balloon") && $target.data("balloon").get(0);
-        return !(b && (b === e.relatedTarget || $.contains(b, e.relatedTarget)));
-      }
-      //-----------------------------------------------------------------------------
-      // Public
-      //-----------------------------------------------------------------------------
-      $.fn.balloon = function(options) {
-        return this.one("mouseenter", function first(e) {
-          var $target = $(this), t = this;
-          var $balloon = $target.off("mouseenter", first)
-            .showBalloon(options).on("mouseenter", function(e) {
-              isValidTargetEvent($target, e) && $target.showBalloon();
-            }).data("balloon");
-          if($balloon) {
-            $balloon.on("mouseleave", function(e) {
-              if(t === e.relatedTarget || $.contains(t, e.relatedTarget)) return;
-              $target.hideBalloon();
-            }).on("mouseenter", function(e) {
-              if(t === e.relatedTarget || $.contains(t, e.relatedTarget)) return;
-              $balloon.stop(true, true);
-              $target.showBalloon();
-            });
-          }
-        }).on("mouseleave", function(e) {
-          var $target = $(this);
-          isValidTargetEvent($target, e) && $target.hideBalloon();
-        });
-      };
-      $.fn.showBalloon = function(options) {
-        var $target, $balloon;
-        if(options || !this.data("options")) {
-          if($.balloon.defaults.css === null) $.balloon.defaults.css = {};
-          this.data("options", $.extend(true, {}, $.balloon.defaults, options || {}));
-        }
-        options = this.data("options");
-        return this.each(function() {
-          var isNew, contents;
-          $target = $(this);
-          isNew = !$target.data("balloon");
-          $balloon = $target.data("balloon") || $("<div>");
-          if(!isNew && $balloon.data("active")) { return; }
-          $balloon.data("active", true);
-          clearTimeout($target.data("minLifetime"));
-          contents = $.isFunction(options.contents)
-            ? options.contents.apply(this)
-            : (options.contents || (options.contents = $target.attr("title") || $target.attr("alt")));
-          $balloon.append(contents);
-          if(!options.url && $balloon.html() === "") { return; }
-          if(!isNew && contents !== $balloon.html()) $balloon.empty().append(contents);
-          $target.removeAttr("title");
-          if(options.url) {
-            $balloon.load($.isFunction(options.url) ? options.url(this) : options.url, function(res, sts, xhr) {
-              if(options.ajaxComplete) options.ajaxComplete(res, sts, xhr);
-              makeupBalloon($target, $balloon, options);
-            });
-          }
-          if(isNew) {
-            $balloon
-              .addClass(options.classname)
-              .css(options.css || {})
-              .css({visibility: "hidden", position: "absolute"})
-              .appendTo("body");
-            $target.data("balloon", $balloon);
-            makeupBalloon($target, $balloon, options);
-            $balloon.hide().css("visibility", "visible");
-          } else {
-            makeupBalloon($target, $balloon, options);
-          }
-          $target.data("delay", setTimeout(function() {
-            if(options.showAnimation) {
-              options.showAnimation.apply(
-                $balloon.stop(true, true), [
-                  options.showDuration, function() {
-                    options.showComplete && options.showComplete.apply($balloon);
-                  }
-                ]
-              );
-            } else {
-              $balloon.show(options.showDuration, function() {
-                if(this.style.removeAttribute) { this.style.removeAttribute("filter"); }
-                options.showComplete && options.showComplete.apply($balloon);
-              });
-            }
-            if(options.maxLifetime) {
-              clearTimeout($target.data("maxLifetime"));
-              $target.data("maxLifetime",
-                setTimeout(function() { $target.hideBalloon(); }, options.maxLifetime)
-              );
-            }
-          }, options.delay));
-        });
-      };
-      $.fn.hideBalloon = function() {
-        var options = this.data("options");
-        if(!this.data("balloon")) return this;
-        return this.each(function() {
-          var $target = $(this);
-          clearTimeout($target.data("delay"));
-          clearTimeout($target.data("minLifetime"));
-          $target.data("minLifetime", setTimeout(function() {
-            var $balloon = $target.data("balloon");
-            if(options.hideAnimation) {
-              options.hideAnimation.apply(
-                $balloon.stop(true, true),
-                [
-                  options.hideDuration,
-                  function(d) {
-                    $(this).data("active", false);
-                    options.hideComplete && options.hideComplete(d);
-                  }
-                ]
-              );
-            } else {
-              $balloon.stop(true, true).hide(
-                options.hideDuration,
-                function(d) {
-                  $(this).data("active", false);
-                  options.hideComplete && options.hideComplete(d);
-                }
-              );
-            }
-          },
-          options.minLifetime));
-        });
-      };
-      $.balloon = {
-        defaults: {
-          contents: null, url: null, ajaxComplete: null, classname: null,
-          position: "top", offsetX: 0, offsetY: 0, tipSize: 12,
-          delay: 0, minLifetime: 200, maxLifetime: 0,
-          showDuration: 100, showAnimation: null,
-          hideDuration:  80, hideAnimation: function(d, c) { this.fadeOut(d, c); },
-          showComplete: null, hideComplete: null,
-          css: {
-            minWidth       : "20px",
-            padding     : "5px",
-            borderRadius   : "6px",
-            border       : "solid 1px #777",
-            boxShadow     : "4px 4px 4px #555",
-            color         : "#666",
-            backgroundColor: "#efefef",
-            opacity     : "0.85",
-            zIndex       : "32767",
-            textAlign     : "left"
-          }
-        }
-      };
-    })(jQuery);
-}
+function initiateBaloon(){!function(t){"use strict";function e(){this.initialize.apply(this,arguments)}function o(o,i,s){function a(t,e,o,i,n){var s=Math.round(i/1.7320508);e.inactive()["setBorder"+o.camel.pos.f](i)["setBorder"+o.camel.pos.c1](s)["setBorder"+o.camel.pos.c2](s)["set"+o.camel.pos.p1](o.isTopLeft?-i:t.inner[o.size.p])["set"+o.camel.pos.c1](t.inner[o.size.c]/2-s).active().$.css("border-"+o.pos.f+"-color",n)}i.stop(!0,!0);var r,l,p={position:"absolute",height:"0",width:"0",border:"solid 0 transparent"},c=new e(o),d=new e(i);if(d.setTop(-s.offsetY+(s.position&&s.position.indexOf("top")>=0?c.top-d.height:s.position&&s.position.indexOf("bottom")>=0?c.bottom:c.center.top-d.height/2)),d.setLeft(s.offsetX+(s.position&&s.position.indexOf("left")>=0?c.left-d.width:s.position&&s.position.indexOf("right")>=0?c.right:c.center.left-d.width/2)),s.tipSize>0){i.data("outerTip")&&(i.data("outerTip").remove(),i.removeData("outerTip")),i.data("innerTip")&&(i.data("innerTip").remove(),i.removeData("innerTip")),r=new e(t("<div>").css(p).appendTo(i)),l=new e(t("<div>").css(p).appendTo(i));for(var h,u=0;u<n.pos.length;u++){if(h=n.getRelativeNames(u),d.center[h.pos.c1]>=c[h.pos.c1]&&d.center[h.pos.c1]<=c[h.pos.c2])if(u%2==0){if(d[h.pos.o]>=c[h.pos.o]&&d[h.pos.f]>=c[h.pos.f])break}else if(d[h.pos.o]<=c[h.pos.o]&&d[h.pos.f]<=c[h.pos.f])break;h=null}h?(d["set"+h.camel.pos.p1](d[h.pos.p1]+(h.isTopLeft?1:-1)*(s.tipSize-d["border"+h.camel.pos.o])),a(d,r,h,s.tipSize,i.css("border-"+h.pos.o+"-color")),a(d,l,h,s.tipSize-2*d["border"+h.camel.pos.o],i.css("background-color")),i.data("outerTip",r.$).data("innerTip",l.$)):t.each([r.$,l.$],function(){this.remove()})}}function i(e,o){var i=e.data("balloon")&&e.data("balloon").get(0);return!(i&&(i===o.relatedTarget||t.contains(i,o.relatedTarget)))}var n={};n.pos=t.extend(["top","bottom","left","right"],{camel:["Top","Bottom","Left","Right"]}),n.size=t.extend(["height","width"],{camel:["Height","Width"]}),n.getRelativeNames=function(t){var e={pos:{o:t,f:t%2==0?t+1:t-1,p1:t%2==0?t:t-1,p2:t%2==0?t+1:t,c1:t<2?2:0,c2:t<2?3:1},size:{p:t<2?0:1,c:t<2?1:0}},o={};for(var i in e){o[i]||(o[i]={});for(var s in e[i])o[i][s]=n[i][e[i][s]],o.camel||(o.camel={}),o.camel[i]||(o.camel[i]={}),o.camel[i][s]=n[i].camel[e[i][s]]}return o.isTopLeft=o.pos.o===o.pos.p1,o},function(){function o(t,e){if(null==e)return o(t,!0),o(t,!1);var i=n.getRelativeNames(e?0:2);return t[i.size.p]=t.$["outer"+i.camel.size.p](),t[i.pos.f]=t[i.pos.o]+t[i.size.p],t.center[i.pos.o]=t[i.pos.o]+t[i.size.p]/2,t.inner[i.pos.o]=t[i.pos.o]+t["border"+i.camel.pos.o],t.inner[i.size.p]=t.$["inner"+i.camel.size.p](),t.inner[i.pos.f]=t.inner[i.pos.o]+t.inner[i.size.p],t.inner.center[i.pos.o]=t.inner[i.pos.f]+t.inner[i.size.p]/2,t}var i={setBorder:function(t,e){return function(i){return this.$.css("border-"+t.toLowerCase()+"-width",i+"px"),this["border"+t]=i,this.isActive?o(this,e):this}},setPosition:function(t,e){return function(i){return this.$.css(t.toLowerCase(),i+"px"),this[t.toLowerCase()]=i,this.isActive?o(this,e):this}}};e.prototype={initialize:function(e){this.$=e,t.extend(!0,this,this.$.offset(),{center:{},inner:{center:{}}});for(var o=0;o<n.pos.length;o++)this["border"+n.pos.camel[o]]=parseInt(this.$.css("border-"+n.pos[o]+"-width"))||0;this.active()},active:function(){return this.isActive=!0,o(this),this},inactive:function(){return this.isActive=!1,this}};for(var s=0;s<n.pos.length;s++)e.prototype["setBorder"+n.pos.camel[s]]=i.setBorder(n.pos.camel[s],s<2),s%2==0&&(e.prototype["set"+n.pos.camel[s]]=i.setPosition(n.pos.camel[s],s<2))}(),t.fn.balloon=function(e){return this.one("mouseenter",function o(n){var s=t(this),a=this,r=s.off("mouseenter",o).showBalloon(e).on("mouseenter",function(t){i(s,t)&&s.showBalloon()}).data("balloon");r&&r.on("mouseleave",function(e){a===e.relatedTarget||t.contains(a,e.relatedTarget)||s.hideBalloon()}).on("mouseenter",function(e){a===e.relatedTarget||t.contains(a,e.relatedTarget)||(r.stop(!0,!0),s.showBalloon())})}).on("mouseleave",function(e){var o=t(this);i(o,e)&&o.hideBalloon()})},t.fn.showBalloon=function(e){var i,n;return!e&&this.data("options")||(null===t.balloon.defaults.css&&(t.balloon.defaults.css={}),this.data("options",t.extend(!0,{},t.balloon.defaults,e||{}))),e=this.data("options"),this.each(function(){var s,a;s=!(i=t(this)).data("balloon"),n=i.data("balloon")||t("<div>"),!s&&n.data("active")||(n.data("active",!0),clearTimeout(i.data("minLifetime")),a=t.isFunction(e.contents)?e.contents.apply(this):e.contents||(e.contents=i.attr("title")||i.attr("alt")),n.append(a),(e.url||""!==n.html())&&(s||a===n.html()||n.empty().append(a),i.removeAttr("title"),e.url&&n.load(t.isFunction(e.url)?e.url(this):e.url,function(t,s,a){e.ajaxComplete&&e.ajaxComplete(t,s,a),o(i,n,e)}),s?(n.addClass(e.classname).css(e.css||{}).css({visibility:"hidden",position:"absolute"}).appendTo("body"),i.data("balloon",n),o(i,n,e),n.hide().css("visibility","visible")):o(i,n,e),i.data("delay",setTimeout(function(){e.showAnimation?e.showAnimation.apply(n.stop(!0,!0),[e.showDuration,function(){e.showComplete&&e.showComplete.apply(n)}]):n.show(e.showDuration,function(){this.style.removeAttribute&&this.style.removeAttribute("filter"),e.showComplete&&e.showComplete.apply(n)}),e.maxLifetime&&(clearTimeout(i.data("maxLifetime")),i.data("maxLifetime",setTimeout(function(){i.hideBalloon()},e.maxLifetime)))},e.delay))))})},t.fn.hideBalloon=function(){var e=this.data("options");return this.data("balloon")?this.each(function(){var o=t(this);clearTimeout(o.data("delay")),clearTimeout(o.data("minLifetime")),o.data("minLifetime",setTimeout(function(){var i=o.data("balloon");e.hideAnimation?e.hideAnimation.apply(i.stop(!0,!0),[e.hideDuration,function(o){t(this).data("active",!1),e.hideComplete&&e.hideComplete(o)}]):i.stop(!0,!0).hide(e.hideDuration,function(o){t(this).data("active",!1),e.hideComplete&&e.hideComplete(o)})},e.minLifetime))}):this},t.balloon={defaults:{contents:null,url:null,ajaxComplete:null,classname:null,position:"top",offsetX:0,offsetY:0,tipSize:12,delay:0,minLifetime:200,maxLifetime:0,showDuration:100,showAnimation:null,hideDuration:80,hideAnimation:function(t,e){this.fadeOut(t,e)},showComplete:null,hideComplete:null,css:{minWidth:"20px",padding:"5px",borderRadius:"6px",border:"solid 1px #777",boxShadow:"4px 4px 4px #555",color:"#666",backgroundColor:"#efefef",opacity:"0.85",zIndex:"32767",textAlign:"left"}}}}(jQuery)}
