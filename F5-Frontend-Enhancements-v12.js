@@ -1075,16 +1075,16 @@ function improvePoolCreation(){
     addDoubleClick("monitor_rule", "available_monitor_select_button");
     addDoubleClick("available_monitor_select", "monitor_rule_button");
 
-    //Set the default pool name suffix
+    // Set the default pool name suffix
     $("#pool_name").find("input[name=name]").attr("value", DefaultPoolName);
 
-    //Set the default action on pool down value
+    // Set the default action on pool down value
     $("#action_on_service_down").find("option[value=\"" + DefaultActionOnPoolDown + "\"]").attr("SELECTED", "");
 
-    //Set the default LB Method
+    // Set the default LB Method
     $("#lb_mode").find("option[value=\"" + DefaultLBMethod + "\"]").attr("SELECTED", "");
 
-    //If configured, choose node as default when selecting pool members
+    // If configured, choose node as default when selecting pool members
     if(ChooseNodeAsDefault){
         $("#member_address_radio_address").attr("unchecked","");
         $("#member_address_radio_node").attr("checked","");
@@ -1093,10 +1093,14 @@ function improvePoolCreation(){
     
 }
 
-
+// Adds monitor test strings to the pool member details
 function improvePoolMemberProperties(){
 
     if($("#member_address td").next().length && $("#member_port td").next().length){
+
+        // Add double click feature
+        addDoubleClick("monitor_rule", "available_monitor_select_button");
+        addDoubleClick("available_monitor_select", "monitor_rule_button");
 
         //Add global style
         var css =   `a.monitortest {  position: relative;  display: inline;  color:#000000;}
