@@ -282,8 +282,9 @@ if(version.split(".")[0] === "12"){
 
 		//Change the iRule selection choice to show more iRules
 		if(uriContains("/tmui/Control/form?__handler=/tmui/locallb/virtual_server/resources&__source=Manage")){
-			assignedrules = $("#assigned_rules").attr("size", iRulesCount);
-			rulereferences = $("#rule_references").attr("size", iRulesCount);
+			
+            improveiRuleSelection();
+            
 		}
 
 		//Set the default suffix of the HTTP monitors
@@ -1047,6 +1048,24 @@ function createDGListObject(lines){
     return bulkImportObj
 }
 
+
+/**************************************************************************
+ *      
+ *                        Virtual server improvements
+ *
+ **************************************************************************/
+
+function improveiRuleSelection(){
+    
+    assignedrules = $("#assigned_rules").attr("size", iRulesCount);
+    rulereferences = $("#rule_references").attr("size", iRulesCount);
+
+    // Add double click feature
+    addDoubleClick("rule_references", "assigned_rules_button");
+    addDoubleClick("assigned_rules", "rule_references_button");
+    
+}
+
 /**************************************************************************
  *      
  *                        Pool improvements
@@ -1212,7 +1231,6 @@ function improvePoolMemberProperties(){
     }
 
 }
-
 
 function getMonitorRequestParameters(sendstring, type, ip, port){
 
