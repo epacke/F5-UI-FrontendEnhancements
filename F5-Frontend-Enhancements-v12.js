@@ -275,99 +275,29 @@ if(version.split(".")[0] === "12"){
 
 		//This section takes care of showing data group lists at the side of iRules
 		if(ParseDataGroupLists && uriContains("/tmui/Control/jspmap/tmui/locallb/rule/properties.jsp")){
-
 			improveiRuleProperties();
-
 		}
 
 		//Change the iRule selection choice to show more iRules
 		if(uriContains("/tmui/Control/form?__handler=/tmui/locallb/virtual_server/resources&__source=Manage")){
-			
             improveiRuleSelection();
-            
 		}
 
 		//Set the default suffix of the HTTP monitors
 		if($("select[name=mon_type]").length){
-			if($("select[name=mon_type]").find(":selected").text().trim() == "HTTP"){
-
-				var monitorname = $("input[name=monitor_name]").attr("value");
-
-				if($("input[name=monitor_name]").length && monitorname == "") {
-					$("input[name=monitor_name]").attr("value", HttpMonitorSuffix);
-				} else if ($("input[name=monitor_name]").length && !(endsWith(monitorname, HttpMonitorSuffix))) {
-					monitorname = monitorname + HttpMonitorSuffix;
-					$("input[name=monitor_name]").attr("value", monitorname);
-				}
-			}
-		}
+            addMonitorPrefix();
+        }
 
 
 		if(MakePartitionObjectsBold && uriContains('/list.jsp')){
 
-			//Get the current partition
-			currentpartition = getCookie("F5_CURRENT_PARTITION")
-
-			$("tbody#list_body tr td a").filter(function(){
-				return $(this).attr("href").indexOf("/" + currentpartition + "") >= 0
-			}).each(function(){
-				$(this).css('font-weight', 700);
-			});
-		}
-
-		if(EnableDefaultcsroptions && uriContains("/tmui/Control/jspmap/tmui/locallb/ssl_certificate/create.jsp")){
-
-			//A certificate is being created and the default certificate signing setting has been enabled
-			var csrdropdown = '<select id="csrdropdownmenu">';
-
-			for(var option in csroptions){
-				csrdropdown += '<option value="' + option + '">' + csroptions[option]["OptionName"] + '</option>';
-			}
-
-			$('#configuration_table tbody').append('<tr><td class="label required">Certificate type</td><td class="settings">' + csrdropdown + '</td></tr>')
-
-			$('#configuration_table tbody tr td #csrdropdownmenu').change(function() {
-
-				//Change to Certificate authority
-				$('#certificate_table tbody tr td select[name=issuer]').val("Certificate Authority");
-
-				//Reflect the changes to the form using the in build function
-				$('#certificate_table tbody tr td select[name=issuer]').trigger("onchange");
-
-				//Get the options for the currently selected certificate and populate the table
-				var selectedcsroption = csroptions[this.value];
-
-				//Populate the common name
-				$('#certificate_table tbody tr td input[name=common_name]').val(selectedcsroption["CommonName"])
-				$('#certificate_table tbody tr td input[name=division]').val(selectedcsroption["Division"])
-				$('#certificate_table tbody tr td input[name=organization]').val(selectedcsroption["Organization"])
-				$('#certificate_table tbody tr td input[name=locality]').val(selectedcsroption["Locality"])
-				$('#certificate_table tbody tr td input[name=state_or_province]').val(selectedcsroption["StateProvince"])
-				$('#certificate_table tbody tr td select[name=country_select]').val(selectedcsroption["Country"])
-				$('#certificate_table tbody tr td input[name=email_address]').val(selectedcsroption["Email"])
-				$('#certificate_table tbody tr td input[name=subject_alternative_name]').val(selectedcsroption["SubjectAlt"])
-
-				//Update the country variable using the in build script
-				$('#certificate_table tbody tr td select[name=country_select]').trigger("onchange");
-			});
-
-			//Set the default value
-			setTimeout(function(){
-				$('#configuration_table tbody tr td #csrdropdownmenu').trigger("change");
-			}, 500);
+            makeCurrentPartitionObjectsBold();
 
 		}
 
-		if(uriContains('/tmui/Control/jspmap/tmui/locallb/ssl_certificate/create.jsp')){
+		if(uriContains("/tmui/Control/jspmap/tmui/locallb/ssl_certificate/create.jsp")){
 
-			$("input[name='certificate_name']").on("keyup", function(){
-				$("input[name='common_name']").val($(this).val().replace(/^star\./g, "*."));
-			});
-
-			setTimeout(function(){
-				$("select[name='issuer']").val("Certificate Authority");
-				$("select[name='issuer']").trigger("change");
-			}, 500);
+            improveCertificateCreation();
 
 		}
 
@@ -378,73 +308,32 @@ if(version.split(".")[0] === "12"){
         ****************************************************************************************************/
 
         if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/properties.jsp?name") || uriContains("/tmui/Control/jspmap/tmui/locallb/pool/create.jsp")){
-            
             improvePoolProperties();
-        
         }
 
         if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/create.jsp")){
-
             improvePoolCreation();
-
         }
 
 		if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/member/properties.jsp")) {
-
             improvePoolMemberProperties();
-
 		}
 
-
 		if($('input[name="cert_key_chain_override"]').length){
-			$('input[name="cert_key_chain_override"]').on("click", matchCertAndKey)
-
-				$('input[name="add_modal_button"]').on("mouseup", function(){
-					setTimeout(function(){
-
-						var currentPartition = getCookie("F5_CURRENT_PARTITION");
-						var profileName = $("input[name='profile_name']").val();
-
-						if($("select#cert option[value='/" + currentPartition + "/" + profileName + ".crt']").length > 0){
-							$('select#cert').val("/" + currentPartition + "/" + profileName + ".crt");
-							$('select#key').val("/" + currentPartition + "/" + profileName + ".key");
-						} else if ($("select#cert option[value='/Common/" + profileName + ".crt']").length > 0){
-							$('select#cert').val("/Common/" + profileName + ".crt");
-							$('select#key').val("/Common/" + profileName + ".key");
-						}
-
-						$('select#chain').val(defaultChain)
-
-					}, 500);
-				});
+            improveCertKeyChainSelection();
 		}
 
 		if(uriContains("/tmui/Control/jspmap/tmui/locallb/virtual_server/resources.jsp")){
-
-			var selecteddefaultpool = $('input[name=default_pool_before]').val();
-			if(selecteddefaultpool != 'NO_SELECTION'){
-				$('input[name=default_pool_before]').after('<a href="https://' + window.location.host + '/tmui/Control/jspmap/tmui/locallb/pool/properties.jsp?name=' + selecteddefaultpool + '"><input type="button" value="Show default pool"/></a>')
-			}
-
+            improveVirtualServerResources();
 		}
 
 		if(uriContains("/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp")){
-
             improveDataGroupListProperties();
-
+            improveDataGroupListEditing();
 		}
 
 		if(uriContains("/tmui/Control/jspmap/tmui/locallb/profile/clientssl/create.jsp")){
-
-			if(defaultClientSSLParentProfile !== ""){
-				setTimeout(function(){
-					$('select#parent_profile_name').val(defaultClientSSLParentProfile);
-					$('select#parent_profile_name').trigger("change");
-
-				}, 1000);
-
-			}
-
+            improveClientSSLProfileCreation();
 		}
 
 
@@ -453,236 +342,12 @@ if(version.split(".")[0] === "12"){
 		}
 		
 		if(uriContains("/tmui/Control/jspmap/tmui/locallb/pool/list.jsp")){
-			
-			addGlobalStyle('div.tamperpoolstatus{position:relative;}div.tamperpoolstatus table.list{position:relative;width:100%;border:1px solid #999 }div.tamperpoolstatus table.list tbody tr.color0{background:#deddd9}div.tamperpoolstatus table.list tbody tr.color0 td{border-bottom:1px solid #c4c2be}div.tamperpoolstatus table.list tbody tr.inner td,div.tamperpoolstatus table.list tbody tr.innerbold td{padding:3px 5px;border-bottom:none;white-space:nowrap}div.tamperpoolstatus table.list tbody tr.color1{background:#fff}div.tamperpoolstatus table.list tbody tr.color2{background:#f7f6f5}div.tamperpoolstatus table.list tbody tr.innerbold td{font-weight:700}div.tamperpoolstatus table.list tbody td{vertical-align:top;padding:6px 5px 4px;border-bottom:1px solid #ddd;white-space:nowrap}div.tamperpoolstatus table.list tbody td input{margin-top:0}div.tamperpoolstatus table.list tbody td img{padding-top:1px}div.tamperpoolstatus table.list div.customtooltip div,div.tamperpoolstatus table.list div.filter div{padding:3px 5px}div.tamperpoolstatus table.list tbody td.first{border-left:1px solid #999}div.tamperpoolstatus table.list tbody td.last{border-right:1px solid #999}div.tamperpoolstatus table.list tbody td.column1,div.tamperpoolstatus table.list tbody td.column2{border-left:1px solid #ddd}div.tamperpoolstatus table.list div.customtooltip,div.tamperpoolstatus table.list div.filter{position:absolute;z-index:1;margin-top:2px;border:1px solid #666;background:#deddd9}div.tamperpoolstatus table.list div.customtooltip div a.close{color:red;font-weight:700}div.tamperpoolstatus table.list div.filter div.current{margin:1px;padding:3px;border:1px solid #999;background:#eee}div.tamperpoolstatus table.list tbody tr.expanded td,div.tamperpoolstatus table.list tbody tr.notlast td{border-bottom:none!important}div.tamperpoolstatus table.list .expired{padding-left:17px;background:url(../images/status_certificate_expired.gif) left center no-repeat}div.tamperpoolstatus table.list .warning{padding-left:17px;background:url(../images/status_certificate_warning.gif) left center no-repeat}div.tamperpoolstatus table.list tbody tr.collapsible-parent td a{vertical-align:top}div.tamperpoolstatus table.list thead tr td div.collapsible-toggle.expanded{background:url(/xui/common/images/icon_toggle_all_minus.gif) no-repeat;width:15px;height:15px;display:inline-block;cursor:pointer;zoom:1}div.tamperpoolstatus table.list tbody tr.expanded td div.collapsible-toggle{background:url(/xui/common/images/icon_toggle_minus.gif) no-repeat;width:12px;height:12px;margin:0 auto;zoom:1}div.tamperpoolstatus table.list thead tr td div.collapsible-toggle.collapsed{background:url(/xui/common/images/icon_toggle_all_plus.gif) no-repeat;width:15px;height:15px;display:inline-block;cursor:pointer;zoom:1}div.tamperpoolstatus table.list tbody tr.collapsed td div.collapsible-toggle{background:url(/xui/common/images/icon_toggle_plus.gif) no-repeat;width:12px;height:12px;margin:0 auto;zoom:1}div.tamperpoolstatus table.list tbody tr.set-whitespace-normal td{white-space:normal}div.tamperpoolstatus table.list tbody.group_move_placeholder{display:table-row}div.tamperpoolstatus table.list tbody tr.handle td.first{width:15px;background:url(/tmui/tmui/skins/Default/images/icon_gripper.png) 50% no-repeat!important;cursor:url(/xui/common/images/openhand.cur),default}div.tamperpoolstatus thead tr.columnhead td div.reorder{width:16px;height:16px;background:url(/xui/common/images/cursor-openhand.png) center no-repeat}div.tamperpoolstatus table.list .highlight{background:#dbefff!important;cursor:url(/xui/common/images/openhand.cur),default}div.tamperpoolstatus table.list .highlight a{cursor:url(/xui/common/images/openhand.cur),default}div.tamperpoolstatus div.section{margin:10px 0}div.tamperpoolstatus thead tr.tablehead td{border-bottom:1px solid #999;vertical-align:bottom}div.tamperpoolstatus thead tr.tablehead div{padding-bottom:3px;white-space:nowrap}div.tamperpoolstatus thead tr.tablehead div.title{float:left;margin-top:.5em;color:#000;font-weight:700}div.tamperpoolstatus thead tr.tablehead div.advancedtoggle{float:left;margin:0 0 0 5px;color:#000}div.tamperpoolstatus thead tr.tablehead div.search{float:left}div.tamperpoolstatus thead tr.tablehead div.searchnofloat{clear:both;float:left}div.tamperpoolstatus thead tr.tablehead div.search input.search,div.tamperpoolstatus thead tr.tablehead div.searchnofloat input.search{width:240px}div.tamperpoolstatus thead tr.tablehead div.buttons{float:right}div.buttons input[type=button],div.tamperpoolstatus thead tr.tablehead div.buttons input[type=button],div.tamperpoolstatus thead tr.tablehead div.buttons input[type=submit]{padding:0 5px}div.tamperpoolstatus thead tr.tablehead div.buttons input.checkall{margin-right:9px}div.tamperpoolstatus thead tr.tablehead div.grouptitle{margin:0 3px 0 2px;padding:1px 10px;border:1px solid #999;border-bottom:none;background:#deddd9;text-align:center;font-weight:700}div.tamperpoolstatus thead tr.columnhead td{padding:5px;border-bottom:1px solid #999;border-top:1px solid #999;border-left:1px solid #999;background:url(../images/background_list_head.gif) #deddd9;white-space:nowrap}div.tamperpoolstatus thead tr.columnhead td.last{border-right:1px solid #999}div.tamperpoolstatus thead tr.columnhead td a{display:block;width:expression("1%");padding-top:1px;margin-top:-1px;color:#000}div.tamperpoolstatus thead tr.columnhead td a.filteroff{margin-top:0;padding-left:20px;background:url(../images/button_filter_off.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td a.filteron{margin-top:0;padding-left:20px;background:url(../images/button_filter_on.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td a.selectall{margin-top:0;width:15px;background:url(../images/button_select_all.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td a.selectall:hover{text-decoration:none}div.tamperpoolstatus thead tr.columnhead td a.sortoff{margin-top:0;padding-left:12px;background:url(../images/button_sort_off.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td a.sorton{margin-top:0;padding-left:12px;background:url(../images/button_sort_on.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td a.sortup{margin-top:0;padding-left:12px;background:url(../images/button_sort_up.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td a.sortdown{margin-top:0;padding-left:12px;background:url(../images/button_sort_down.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .greenflag,div.tamperpoolstatus thead tr.columnhead td .redflag,div.tamperpoolstatus thead tr.columnhead td .yellowflag{display:block;width:expression("1%");padding-top:1px;padding-left:20px}div.tamperpoolstatus thead tr.columnhead td .greenflag{background:url(../images/status_flag_green.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .yellowflag{background:url(../images/status_flag_yellow.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .redflag{background:url(../images/status_flag_red.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .activedevice,div.tamperpoolstatus thead tr.columnhead td .failsafefaultdevice,div.tamperpoolstatus thead tr.columnhead td .impaireddevice,div.tamperpoolstatus thead tr.columnhead td .maintenancedevice,div.tamperpoolstatus thead tr.columnhead td .offlinedevice,div.tamperpoolstatus thead tr.columnhead td .replacementdevice,div.tamperpoolstatus thead tr.columnhead td .standbydevice,div.tamperpoolstatus thead tr.columnhead td .unknowndevice,div.tamperpoolstatus thead tr.columnhead td .unreachabledevice{display:block;width:expression("1%");padding:2px 0 2px 27px}div.tamperpoolstatus thead tr.columnhead td .activedevice{background:url(../images/status_filter_device_active.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .standbydevice{background:url(../images/status_filter_device_standby.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .failsafefaultdevice{background:url(../images/status_filter_device_failsafe_fault.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .offlinedevice{background:url(../images/status_filter_device_offline.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .forcedofflinedevice{display:block;width:expression("1%");padding:2px 0 2px 27px;background:url(../images/status_filter_device_forcedoffline.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .unknowndevice{background:url(../images/status_filter_device_present_unknown.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .impaireddevice{background:url(../images/status_filter_device_impaired.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .maintenancedevice{background:url(../images/status_filter_device_maint.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .replacementdevice{background:url(../images/status_filter_device_replacement.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .unreachabledevice{background:url(../images/status_filter_device_unreachable.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .available,div.tamperpoolstatus thead tr.columnhead td .offline,div.tamperpoolstatus thead tr.columnhead td .unavailable,div.tamperpoolstatus thead tr.columnhead td .unknown{display:block;width:expression("1%");padding-top:1px;padding-left:20px}div.tamperpoolstatus thead tr.columnhead td .available{background:url(../images/status_circle_green.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .unavailable{background:url(../images/status_triangle_yellow.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .offline{background:url(../images/status_diamond_red.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .unknown{background:url(../images/status_square_blue.png) left center no-repeat}div.tamperpoolstatus table.head td.wizardtext{padding-top:10px}div.tamperpoolstatus table.tablefoot{width:100%}div.tamperpoolstatus table.tablefoot td{vertical-align:top}div.tamperpoolstatus table.tablefoot div{padding:3px 0 20px}div.tamperpoolstatus table.tablefoot div.buttons{float:left}div.tamperpoolstatus table.tablefoot div.buttons input[type=button],div.tamperpoolstatus table.tablefoot div.buttons input[type=submit]{padding:0 5px}div.tamperpoolstatus table.tablefoot div.pagecontrols{float:right}');
-			
-			var poolStatuses = {}
-			var oldMessage = $(parent.top.document).find("div#message div#messagetype div#messagetext").text();
-			
-			var statusInterval = setInterval(function(){
-				if(!$(parent.top.document).find("div#message").is(":visible")){
-					$(parent.top.document).find("div#message div#messagetype div#messagetext").text("Loading member statuses...");
-					$(parent.top.document).find("div#message").show();
-					clearInterval(statusInterval);
-				}		
-			} , 100);
-
-			$.ajax({
-				url: "https://" + window.location.host + "/tmui/Control/jspmap/tmui/locallb/pool/stats.jsp?SearchString=*&",
-				type: "GET",
-				success: function(response) {
-					
-					$(response).find("tbody#list_body tr")
-					.filter(function() {
-						return this.id.match(/\/.+\//);
-					})
-					.each(function(){
-						
-						var poolName = this.id.replace(/_member_row_[0-9]+$/i, "");
-						
-						if(!(poolName in poolStatuses)){
-							poolStatuses[poolName] = {};
-						}
-						
-						var memberName = $(this).find("td").eq(3).text().trim();
-						var statusIcon = $(this).find("td").eq(1).find("img").attr("src");
-						var title  = $(this).find("td").eq(1).find("img").attr("title");
-
-						poolStatuses[poolName][memberName] = { "icon": statusIcon, "title": title };
-					
-					});
-
-					$("tbody#list_body tr").each(function(){
-					
-						var poolName = $(this).find("td").eq(2).find("a").attr("href").replace(/.+name=/i, "");
-						var existingIcons = [];
-						
-						if(poolName in poolStatuses){
-							
-							memberStatuses = poolStatuses[poolName];
-							
-							for(memberStatus in memberStatuses){
-								if(existingIcons.indexOf(memberStatuses[memberStatus]["icon"]) === -1){
-									existingIcons.push(memberStatuses[memberStatus]["icon"]);
-								}
-							}
-
-							if(existingIcons.length > 1){
-								
-								var html = "<div data-poolname=\"" + poolName + "\" class=\"tamperpoolstatus\" style=\"margin-left:21px;margin-bottom:15px;\">";
-								
-								for(i = 0; i < existingIcons.length;i++){
-									
-									iconURL = existingIcons[i].replace(/\/.*_/i, "/tmui/tmui/skins/Default/images/status_circle_");
-									
-									switch (i){
-										case 0:
-											html += "<div style=\"z-index:1;position:absolute;max-width:6.7px;overflow:hidden;\"><img src=\"" + iconURL + "\"/></div>"
-											break;
-										case 1:
-											html += "<div style=\"z-index:1;position:absolute;left:6.7px;max-width:6.5px;overflow:hidden;direction:rtl;\"><img src=\"" + iconURL + "\"/></div>"
-											break;
-										case 2:
-											html += "<div style=\"z-index:2;position:absolute;max-height:7.5px;left:0.2px;overflow:hidden;\"><img src=\"" + iconURL + "\"/></div>"
-											break;
-										case 3:
-											html += "<div style=\"z-index:4;position:absolute;max-width:6.5px;max-height:7.5px;overflow:hidden;\"><img src=\"/tmui/tmui/skins/Default/images/status_circle_blue.png\"/></div>"
-											break;
-									}
-								}
-								
-								html += "</div>";
-
-								$(this).find("td").eq(1).html(html);
-								
-							} else {
-								var html = "<div data-poolname=\"" + poolName + "\" style=\"position:relative;padding-top:1px\"><img src=\"" + existingIcons + "\"/></div>"
-								$(this).find("td").eq(1).html(html);
-							}
-							
-							$(this).find("td").eq(1).find("div").on("mouseover", function(){
-								poolName = $(this).attr("data-poolname");
-								
-								if(poolName in poolStatuses){
-									
-									var table = "<div class=\"tamperpoolstatus\"><table class=\"list\" style=\"opacity:1\"><thead id=\"list_header\"><tr class=\"columnhead\"><td></td><td>Member</td><td>Status</td></tr></thead><tbody>";
-									memberStatuses = poolStatuses[poolName];
-									
-									var i = 0;
-									
-									for(member in memberStatuses){
-										table += "<tr class=\"color" + ((i%2)+1) + "\"><td align=\"center\"><img src=\"" + memberStatuses[member].icon + "\"/></td><td>" + member + "</td><td>" + memberStatuses[member].title + "</td></tr>";
-										i++;
-									}
-									
-									table += "</tbody></table></div>";
-									
-									$(this).balloon({ position: "right", css: { whitespace: "nowrap", boxShadow: null, opacity: "1", padding: "0px", border: "0px", background: "rgba(0, 0, 255,1)" }, minLifetime: 0, tipSize:0, showDuration: 0, hideDuration: 0, contents: table });
-								}
-							});
-							
-							//For some reason I need to trigger this at least one ahead of time in order to get the popup to show on the first attempt
-							$(this).find("td").eq(1).find("div").trigger("mouseover");
-							$(this).find("td").eq(1).find("div").trigger("mouseout");
-							
-						}
-					})
-					
-					$(parent.top.document).find("div#message").fadeOut(function(){
-						$(parent.top.document).find("div#message div#messagetype div#messagetext").text(oldMessage);
-					});
-					
-				}
-			})
-
+            improvePoolList();
 		}
 		
-		if(uriContains("/tmui/Control/jspmap/tmui/locallb/datagroup/create.jsp") || uriContains("/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp")){
-			
-			//Increase the size of the lists
-			$("select").not("#datagroup_type_select").attr("size", DatagroupListCount);
-			
-			//Add extra cell and buttons for bulk import
-			$("table#records thead tr.tablehead td").after(`<td>
-																<div class="title">Bulk import text</div>
-															</td>
-															`);
-			$("table#records tbody tr td.settings").after(`<td class="settings" id="dgbulkimport">
-															<textarea cols="60" rows="` + (DatagroupListCount + 8) + `" class="bulkcontent"/>
-															<br>
-															<input type="button" value="Merge the lists" id="bulkMerge"/>
-															<input type="button" value="Replace current list" id="bulkReplace"/>
-															<input type="button" value="Edit active list" id="bulkEdit"/>
-															<input type="button" value="Help" id="bulkHelp"/>
-															</td>
-															`
-													)
-															
-		
-			//Attach the functions to the buttons
-			
-			$("input#bulkMerge").on("click", function(){
-
-				"use strict";
-				
-				//First get the data
-				var importListArr = $("textarea.bulkcontent:visible").val().split("\n");
-				var currentListArr = [];
-				$("select:visible").last().find("option").each(function(){
-					currentListArr.push($(this).text().trim()) 
-				})
-				
-				//Create objects from the arrays
-				var importObj = createDGListObject(importListArr);
-				var currentObj = createDGListObject(currentListArr);
-
-				for(var key in importObj){
-					if(!(key in currentObj)){
-						
-						var value = importObj[key];
-						var optionValue = value === "" ? key : (key + "\\x0a" + value);
-						var optionText = value === "" ? key : (key + " := " + value);
-						
-						$("select:visible").last().append("<option value=\"" + optionValue + "\" selected=\"\">" + optionText + "</option></select>");
-					}
-				}
-				
-			})
-			
-			$("input#bulkReplace").on("click", function(){
-
-				"use strict";
-				
-				//First get the data
-				var importListArr = $("textarea.bulkcontent:visible").val().split("\n");
-
-				//Create an object from the array
-				var importObj = createDGListObject(importListArr);
-				
-				//Remove current options
-				$("select:visible").last().find("option").remove();
-				
-				for(var key in importObj){
-					
-					var value = importObj[key];
-					var optionValue = value === "" ? key : (key + "\\x0a" + value);
-					var optionText = value === "" ? key : (key + " := " + value);
-						
-					$("select:visible").last().append("<option value=\"" + optionValue + "\" selected=\"\">" + optionText + "</option></select>");
-					
-				}
-				
-			})
-
-			$("input#bulkEdit").on("click", function(){
-				
-				var keyVals = []
-				
-				$("select:visible").last().find("option").each(function(){
-					keyVals.push($(this).text().trim())
-					$(this).remove();
-				})
-				
-				$("textarea.bulkcontent:visible").val(keyVals.join("\n"));
-				
-			})
-			
-			$("input#bulkHelp").on("click", function(){
-				alert(`Bulk import help:
-
-Merge the lists: 
-Takes all the records in the import text area, compares them to the active list and imports the records that does not have duplicate keys.
-This means that if "apple" := "banana" exists in the active list and the import list has "apple" := "banana", then "apple" := "banana" won't be imported.
-
-Replace the current list:
-Takes all the records in the import text area and replaces the active list. Duplicate records are ignored like with "Merge the lists".
-
-Edit active list:
-Moves all the records from the active list to the import list.
-`);
-			})
-
-		}
+		if(uriContains("/tmui/Control/jspmap/tmui/locallb/datagroup/create.jsp")){
+		    improveDataGroupListEditing();    
+        }
 		
 		
 	})();
@@ -975,6 +640,112 @@ function getDataGroupListsFromRule(str){
  *
  **************************************************************************/
 
+function improveDataGroupListEditing(){
+    //Increase the size of the lists
+    $("select").not("#datagroup_type_select").attr("size", DatagroupListCount);
+    
+    //Add extra cell and buttons for bulk import
+    $("table#records thead tr.tablehead td").after(`<td>
+                                                        <div class="title">Bulk import text</div>
+                                                    </td>
+                                                    `);
+    $("table#records tbody tr td.settings").after(`<td class="settings" id="dgbulkimport">
+                                                    <textarea cols="60" rows="` + (DatagroupListCount + 8) + `" class="bulkcontent"/>
+                                                    <br>
+                                                    <input type="button" value="Merge the lists" id="bulkMerge"/>
+                                                    <input type="button" value="Replace current list" id="bulkReplace"/>
+                                                    <input type="button" value="Edit active list" id="bulkEdit"/>
+                                                    <input type="button" value="Help" id="bulkHelp"/>
+                                                    </td>
+                                                    `
+                                            )
+                                                    
+
+    //Attach the functions to the buttons
+    
+    $("input#bulkMerge").on("click", function(){
+
+        "use strict";
+        
+        //First get the data
+        var importListArr = $("textarea.bulkcontent:visible").val().split("\n");
+        var currentListArr = [];
+        $("select:visible").last().find("option").each(function(){
+            currentListArr.push($(this).text().trim()) 
+        })
+        
+        //Create objects from the arrays
+        var importObj = createDGListObject(importListArr);
+        var currentObj = createDGListObject(currentListArr);
+
+        for(var key in importObj){
+            if(!(key in currentObj)){
+                
+                var value = importObj[key];
+                var optionValue = value === "" ? key : (key + "\\x0a" + value);
+                var optionText = value === "" ? key : (key + " := " + value);
+                
+                $("select:visible").last().append("<option value=\"" + optionValue + "\" selected=\"\">" + optionText + "</option></select>");
+            }
+        }
+        
+    })
+    
+    $("input#bulkReplace").on("click", function(){
+
+        "use strict";
+        
+        //First get the data
+        var importListArr = $("textarea.bulkcontent:visible").val().split("\n");
+
+        //Create an object from the array
+        var importObj = createDGListObject(importListArr);
+        
+        //Remove current options
+        $("select:visible").last().find("option").remove();
+        
+        for(var key in importObj){
+            
+            var value = importObj[key];
+            var optionValue = value === "" ? key : (key + "\\x0a" + value);
+            var optionText = value === "" ? key : (key + " := " + value);
+                
+            $("select:visible").last().append("<option value=\"" + optionValue + "\" selected=\"\">" + optionText + "</option></select>");
+            
+        }
+        
+    })
+
+    $("input#bulkEdit").on("click", function(){
+        
+        var keyVals = []
+        
+        $("select:visible").last().find("option").each(function(){
+            keyVals.push($(this).text().trim())
+            $(this).remove();
+        })
+        
+        $("textarea.bulkcontent:visible").val(keyVals.join("\n"));
+        
+    })
+    
+    $("input#bulkHelp").on("click", function(){
+        alert(`Bulk import help:
+
+Merge the lists: 
+Takes all the records in the import text area, compares them to the active list and imports the records that does not have duplicate keys.
+This means that if "apple" := "banana" exists in the active list and the import list has "apple" := "banana", then "apple" := "banana" won't be imported.
+
+Replace the current list:
+Takes all the records in the import text area and replaces the active list. Duplicate records are ignored like with "Merge the lists".
+
+Edit active list:
+Moves all the records from the active list to the import list.
+`);
+    })
+
+}
+
 function improveDataGroupListProperties(){
 
     $("input[name=string_input], input[name=string_pair_value], input#string_add_button").on("keyup change input focus click", function(){
@@ -1056,7 +827,7 @@ function createDGListObject(lines){
  **************************************************************************/
 
 function improveiRuleSelection(){
-    
+
     assignedrules = $("#assigned_rules").attr("size", iRulesCount);
     rulereferences = $("#rule_references").attr("size", iRulesCount);
 
@@ -1066,11 +837,145 @@ function improveiRuleSelection(){
     
 }
 
+function improveVirtualServerResources(){
+    var selecteddefaultpool = $('input[name=default_pool_before]').val();
+    if(selecteddefaultpool != 'NO_SELECTION'){
+        $('input[name=default_pool_before]').after('<a href="https://' + window.location.host + '/tmui/Control/jspmap/tmui/locallb/pool/properties.jsp?name=' + selecteddefaultpool + '"><input type="button" value="Show default pool"/></a>')
+    }
+}
+
 /**************************************************************************
  *      
  *                        Pool improvements
  *
  **************************************************************************/
+
+function improvePoolList(){
+    
+    addGlobalStyle('div.tamperpoolstatus{position:relative;}div.tamperpoolstatus table.list{position:relative;width:100%;border:1px solid #999 }div.tamperpoolstatus table.list tbody tr.color0{background:#deddd9}div.tamperpoolstatus table.list tbody tr.color0 td{border-bottom:1px solid #c4c2be}div.tamperpoolstatus table.list tbody tr.inner td,div.tamperpoolstatus table.list tbody tr.innerbold td{padding:3px 5px;border-bottom:none;white-space:nowrap}div.tamperpoolstatus table.list tbody tr.color1{background:#fff}div.tamperpoolstatus table.list tbody tr.color2{background:#f7f6f5}div.tamperpoolstatus table.list tbody tr.innerbold td{font-weight:700}div.tamperpoolstatus table.list tbody td{vertical-align:top;padding:6px 5px 4px;border-bottom:1px solid #ddd;white-space:nowrap}div.tamperpoolstatus table.list tbody td input{margin-top:0}div.tamperpoolstatus table.list tbody td img{padding-top:1px}div.tamperpoolstatus table.list div.customtooltip div,div.tamperpoolstatus table.list div.filter div{padding:3px 5px}div.tamperpoolstatus table.list tbody td.first{border-left:1px solid #999}div.tamperpoolstatus table.list tbody td.last{border-right:1px solid #999}div.tamperpoolstatus table.list tbody td.column1,div.tamperpoolstatus table.list tbody td.column2{border-left:1px solid #ddd}div.tamperpoolstatus table.list div.customtooltip,div.tamperpoolstatus table.list div.filter{position:absolute;z-index:1;margin-top:2px;border:1px solid #666;background:#deddd9}div.tamperpoolstatus table.list div.customtooltip div a.close{color:red;font-weight:700}div.tamperpoolstatus table.list div.filter div.current{margin:1px;padding:3px;border:1px solid #999;background:#eee}div.tamperpoolstatus table.list tbody tr.expanded td,div.tamperpoolstatus table.list tbody tr.notlast td{border-bottom:none!important}div.tamperpoolstatus table.list .expired{padding-left:17px;background:url(../images/status_certificate_expired.gif) left center no-repeat}div.tamperpoolstatus table.list .warning{padding-left:17px;background:url(../images/status_certificate_warning.gif) left center no-repeat}div.tamperpoolstatus table.list tbody tr.collapsible-parent td a{vertical-align:top}div.tamperpoolstatus table.list thead tr td div.collapsible-toggle.expanded{background:url(/xui/common/images/icon_toggle_all_minus.gif) no-repeat;width:15px;height:15px;display:inline-block;cursor:pointer;zoom:1}div.tamperpoolstatus table.list tbody tr.expanded td div.collapsible-toggle{background:url(/xui/common/images/icon_toggle_minus.gif) no-repeat;width:12px;height:12px;margin:0 auto;zoom:1}div.tamperpoolstatus table.list thead tr td div.collapsible-toggle.collapsed{background:url(/xui/common/images/icon_toggle_all_plus.gif) no-repeat;width:15px;height:15px;display:inline-block;cursor:pointer;zoom:1}div.tamperpoolstatus table.list tbody tr.collapsed td div.collapsible-toggle{background:url(/xui/common/images/icon_toggle_plus.gif) no-repeat;width:12px;height:12px;margin:0 auto;zoom:1}div.tamperpoolstatus table.list tbody tr.set-whitespace-normal td{white-space:normal}div.tamperpoolstatus table.list tbody.group_move_placeholder{display:table-row}div.tamperpoolstatus table.list tbody tr.handle td.first{width:15px;background:url(/tmui/tmui/skins/Default/images/icon_gripper.png) 50% no-repeat!important;cursor:url(/xui/common/images/openhand.cur),default}div.tamperpoolstatus thead tr.columnhead td div.reorder{width:16px;height:16px;background:url(/xui/common/images/cursor-openhand.png) center no-repeat}div.tamperpoolstatus table.list .highlight{background:#dbefff!important;cursor:url(/xui/common/images/openhand.cur),default}div.tamperpoolstatus table.list .highlight a{cursor:url(/xui/common/images/openhand.cur),default}div.tamperpoolstatus div.section{margin:10px 0}div.tamperpoolstatus thead tr.tablehead td{border-bottom:1px solid #999;vertical-align:bottom}div.tamperpoolstatus thead tr.tablehead div{padding-bottom:3px;white-space:nowrap}div.tamperpoolstatus thead tr.tablehead div.title{float:left;margin-top:.5em;color:#000;font-weight:700}div.tamperpoolstatus thead tr.tablehead div.advancedtoggle{float:left;margin:0 0 0 5px;color:#000}div.tamperpoolstatus thead tr.tablehead div.search{float:left}div.tamperpoolstatus thead tr.tablehead div.searchnofloat{clear:both;float:left}div.tamperpoolstatus thead tr.tablehead div.search input.search,div.tamperpoolstatus thead tr.tablehead div.searchnofloat input.search{width:240px}div.tamperpoolstatus thead tr.tablehead div.buttons{float:right}div.buttons input[type=button],div.tamperpoolstatus thead tr.tablehead div.buttons input[type=button],div.tamperpoolstatus thead tr.tablehead div.buttons input[type=submit]{padding:0 5px}div.tamperpoolstatus thead tr.tablehead div.buttons input.checkall{margin-right:9px}div.tamperpoolstatus thead tr.tablehead div.grouptitle{margin:0 3px 0 2px;padding:1px 10px;border:1px solid #999;border-bottom:none;background:#deddd9;text-align:center;font-weight:700}div.tamperpoolstatus thead tr.columnhead td{padding:5px;border-bottom:1px solid #999;border-top:1px solid #999;border-left:1px solid #999;background:url(../images/background_list_head.gif) #deddd9;white-space:nowrap}div.tamperpoolstatus thead tr.columnhead td.last{border-right:1px solid #999}div.tamperpoolstatus thead tr.columnhead td a{display:block;width:expression("1%");padding-top:1px;margin-top:-1px;color:#000}div.tamperpoolstatus thead tr.columnhead td a.filteroff{margin-top:0;padding-left:20px;background:url(../images/button_filter_off.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td a.filteron{margin-top:0;padding-left:20px;background:url(../images/button_filter_on.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td a.selectall{margin-top:0;width:15px;background:url(../images/button_select_all.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td a.selectall:hover{text-decoration:none}div.tamperpoolstatus thead tr.columnhead td a.sortoff{margin-top:0;padding-left:12px;background:url(../images/button_sort_off.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td a.sorton{margin-top:0;padding-left:12px;background:url(../images/button_sort_on.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td a.sortup{margin-top:0;padding-left:12px;background:url(../images/button_sort_up.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td a.sortdown{margin-top:0;padding-left:12px;background:url(../images/button_sort_down.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .greenflag,div.tamperpoolstatus thead tr.columnhead td .redflag,div.tamperpoolstatus thead tr.columnhead td .yellowflag{display:block;width:expression("1%");padding-top:1px;padding-left:20px}div.tamperpoolstatus thead tr.columnhead td .greenflag{background:url(../images/status_flag_green.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .yellowflag{background:url(../images/status_flag_yellow.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .redflag{background:url(../images/status_flag_red.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .activedevice,div.tamperpoolstatus thead tr.columnhead td .failsafefaultdevice,div.tamperpoolstatus thead tr.columnhead td .impaireddevice,div.tamperpoolstatus thead tr.columnhead td .maintenancedevice,div.tamperpoolstatus thead tr.columnhead td .offlinedevice,div.tamperpoolstatus thead tr.columnhead td .replacementdevice,div.tamperpoolstatus thead tr.columnhead td .standbydevice,div.tamperpoolstatus thead tr.columnhead td .unknowndevice,div.tamperpoolstatus thead tr.columnhead td .unreachabledevice{display:block;width:expression("1%");padding:2px 0 2px 27px}div.tamperpoolstatus thead tr.columnhead td .activedevice{background:url(../images/status_filter_device_active.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .standbydevice{background:url(../images/status_filter_device_standby.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .failsafefaultdevice{background:url(../images/status_filter_device_failsafe_fault.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .offlinedevice{background:url(../images/status_filter_device_offline.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .forcedofflinedevice{display:block;width:expression("1%");padding:2px 0 2px 27px;background:url(../images/status_filter_device_forcedoffline.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .unknowndevice{background:url(../images/status_filter_device_present_unknown.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .impaireddevice{background:url(../images/status_filter_device_impaired.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .maintenancedevice{background:url(../images/status_filter_device_maint.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .replacementdevice{background:url(../images/status_filter_device_replacement.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .unreachabledevice{background:url(../images/status_filter_device_unreachable.gif) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .available,div.tamperpoolstatus thead tr.columnhead td .offline,div.tamperpoolstatus thead tr.columnhead td .unavailable,div.tamperpoolstatus thead tr.columnhead td .unknown{display:block;width:expression("1%");padding-top:1px;padding-left:20px}div.tamperpoolstatus thead tr.columnhead td .available{background:url(../images/status_circle_green.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .unavailable{background:url(../images/status_triangle_yellow.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .offline{background:url(../images/status_diamond_red.png) left center no-repeat}div.tamperpoolstatus thead tr.columnhead td .unknown{background:url(../images/status_square_blue.png) left center no-repeat}div.tamperpoolstatus table.head td.wizardtext{padding-top:10px}div.tamperpoolstatus table.tablefoot{width:100%}div.tamperpoolstatus table.tablefoot td{vertical-align:top}div.tamperpoolstatus table.tablefoot div{padding:3px 0 20px}div.tamperpoolstatus table.tablefoot div.buttons{float:left}div.tamperpoolstatus table.tablefoot div.buttons input[type=button],div.tamperpoolstatus table.tablefoot div.buttons input[type=submit]{padding:0 5px}div.tamperpoolstatus table.tablefoot div.pagecontrols{float:right}');
+    
+    var poolStatuses = {}
+    var oldMessage = $(parent.top.document).find("div#message div#messagetype div#messagetext").text();
+    
+    // Check when the loading screen for pools has disappears and then show a member statuses.
+    var statusInterval = setInterval(function(){
+        if(!$(parent.top.document).find("div#message").is(":visible")){
+            $(parent.top.document).find("div#message div#messagetype div#messagetext").text("Loading member statuses...");
+            $(parent.top.document).find("div#message").show();
+            clearInterval(statusInterval);
+        }       
+    } , 100);
+
+    $.ajax({
+        url: "https://" + window.location.host + "/tmui/Control/jspmap/tmui/locallb/pool/stats.jsp?SearchString=*&",
+        type: "GET",
+        success: function(response) {
+            
+            $(response).find("tbody#list_body tr")
+            .filter(function() {
+                return this.id.match(/\/.+\//);
+            })
+            .each(function(){
+                
+                var poolName = this.id.replace(/_member_row_[0-9]+$/i, "");
+                
+                if(!(poolName in poolStatuses)){
+                    poolStatuses[poolName] = {};
+                }
+                
+                var memberName = $(this).find("td").eq(3).text().trim();
+                var statusIcon = $(this).find("td").eq(1).find("img").attr("src");
+                var title  = $(this).find("td").eq(1).find("img").attr("title");
+
+                poolStatuses[poolName][memberName] = { "icon": statusIcon, "title": title };
+            
+            });
+
+            $("tbody#list_body tr").each(function(){
+            
+                var poolName = $(this).find("td").eq(2).find("a").attr("href").replace(/.+name=/i, "");
+                var existingIcons = [];
+                
+                if(poolName in poolStatuses){
+                    
+                    memberStatuses = poolStatuses[poolName];
+                    
+                    for(memberStatus in memberStatuses){
+                        if(existingIcons.indexOf(memberStatuses[memberStatus]["icon"]) === -1){
+                            existingIcons.push(memberStatuses[memberStatus]["icon"]);
+                        }
+                    }
+
+                    if(existingIcons.length > 1){
+                        
+                        var html = "<div data-poolname=\"" + poolName + "\" class=\"tamperpoolstatus\" style=\"margin-left:21px;margin-bottom:15px;\">";
+                        
+                        for(i = 0; i < existingIcons.length;i++){
+                            
+                            iconURL = existingIcons[i].replace(/\/.*_/i, "/tmui/tmui/skins/Default/images/status_circle_");
+                            
+                            switch (i){
+                                case 0:
+                                    html += "<div style=\"z-index:1;position:absolute;max-width:6.7px;overflow:hidden;\"><img src=\"" + iconURL + "\"/></div>"
+                                    break;
+                                case 1:
+                                    html += "<div style=\"z-index:1;position:absolute;left:6.7px;max-width:6.5px;overflow:hidden;direction:rtl;\"><img src=\"" + iconURL + "\"/></div>"
+                                    break;
+                                case 2:
+                                    html += "<div style=\"z-index:2;position:absolute;max-height:7.5px;left:0.2px;overflow:hidden;\"><img src=\"" + iconURL + "\"/></div>"
+                                    break;
+                                case 3:
+                                    html += "<div style=\"z-index:4;position:absolute;max-width:6.5px;max-height:7.5px;overflow:hidden;\"><img src=\"/tmui/tmui/skins/Default/images/status_circle_blue.png\"/></div>"
+                                    break;
+                            }
+                        }
+                        
+                        html += "</div>";
+
+                        $(this).find("td").eq(1).html(html);
+                        
+                    } else {
+                        var html = "<div data-poolname=\"" + poolName + "\" style=\"position:relative;padding-top:1px\"><img src=\"" + existingIcons + "\"/></div>"
+                        $(this).find("td").eq(1).html(html);
+                    }
+                    
+                    $(this).find("td").eq(1).find("div").on("mouseover", function(){
+                        poolName = $(this).attr("data-poolname");
+                        
+                        if(poolName in poolStatuses){
+                            
+                            var table = "<div class=\"tamperpoolstatus\"><table class=\"list\" style=\"opacity:1\"><thead id=\"list_header\"><tr class=\"columnhead\"><td></td><td>Member</td><td>Status</td></tr></thead><tbody>";
+                            memberStatuses = poolStatuses[poolName];
+                            
+                            var i = 0;
+                            
+                            for(member in memberStatuses){
+                                table += "<tr class=\"color" + ((i%2)+1) + "\"><td align=\"center\"><img src=\"" + memberStatuses[member].icon + "\"/></td><td>" + member + "</td><td>" + memberStatuses[member].title + "</td></tr>";
+                                i++;
+                            }
+                            
+                            table += "</tbody></table></div>";
+                            
+                            $(this).balloon({ position: "right", css: { whitespace: "nowrap", boxShadow: null, opacity: "1", padding: "0px", border: "0px", background: "rgba(0, 0, 255,1)" }, minLifetime: 0, tipSize:0, showDuration: 0, hideDuration: 0, contents: table });
+                        }
+                    });
+                    
+                    //For some reason I need to trigger this at least one ahead of time in order to get the popup to show on the first attempt
+                    $(this).find("td").eq(1).find("div").trigger("mouseover");
+                    $(this).find("td").eq(1).find("div").trigger("mouseout");
+                    
+                }
+            })
+            
+            $(parent.top.document).find("div#message").fadeOut(function(){
+                $(parent.top.document).find("div#message div#messagetype div#messagetext").text(oldMessage);
+            });
+            
+        }
+    })
+
+}
+
 
 function improvePoolProperties(){
 
@@ -1110,6 +1015,20 @@ function improvePoolCreation(){
         $("#member_address_radio_node").click();
     }
     
+}
+
+function addMonitorPrefix(){
+    if($("select[name=mon_type]").find(":selected").text().trim() == "HTTP"){
+
+        var monitorname = $("input[name=monitor_name]").attr("value");
+
+        if($("input[name=monitor_name]").length && monitorname == "") {
+            $("input[name=monitor_name]").attr("value", HttpMonitorSuffix);
+        } else if ($("input[name=monitor_name]").length && !(endsWith(monitorname, HttpMonitorSuffix))) {
+            monitorname = monitorname + HttpMonitorSuffix;
+            $("input[name=monitor_name]").attr("value", monitorname);
+        }
+    }
 }
 
 // Adds monitor test strings to the pool member details
@@ -1326,6 +1245,57 @@ function getMonitorRequestParameters(sendstring, type, ip, port){
  *
  **************************************************************************/
 
+function improveClientSSLProfileCreation(){
+    
+    if(defaultClientSSLParentProfile !== ""){
+        setTimeout(function(){
+            $('select#parent_profile_name').val(defaultClientSSLParentProfile);
+            $('select#parent_profile_name').trigger("change");
+
+        }, 1000);
+
+    }
+
+    $("input[name='certificate_name']").on("keyup", function(){
+        $("input[name='common_name']").val($(this).val().replace(/^star\./g, "*."));
+    });
+
+    setTimeout(function(){
+        $("select[name='issuer']").val("Certificate Authority");
+        $("select[name='issuer']").trigger("change");
+    }, 500);
+
+}
+
+
+function improveCertKeyChainSelection(){
+
+    if(EnableDefaultcsroptions){
+        $('input[name="cert_key_chain_override"]').on("click", matchCertAndKey);
+
+        $('input[name="add_modal_button"]').on("mouseup", function(){
+            setTimeout(function(){
+
+                var currentPartition = getCookie("F5_CURRENT_PARTITION");
+                var profileName = $("input[name='profile_name']").val();
+
+                if($("select#cert option[value='/" + currentPartition + "/" + profileName + ".crt']").length > 0){
+                    $('select#cert').val("/" + currentPartition + "/" + profileName + ".crt");
+                    $('select#key').val("/" + currentPartition + "/" + profileName + ".key");
+                } else if ($("select#cert option[value='/Common/" + profileName + ".crt']").length > 0){
+                    $('select#cert').val("/Common/" + profileName + ".crt");
+                    $('select#key').val("/Common/" + profileName + ".key");
+                }
+
+                $('select#chain').val(defaultChain)
+
+            }, 500);
+        });
+    }
+
+
+}
+
 function matchCertAndKey(){
 
     $('select#chain').val(defaultChain)
@@ -1344,10 +1314,78 @@ function matchCertAndKey(){
     });
 }
 
+/**************************************************************************
+ *      
+ *              SSL certificate creation improvements
+ *
+ **************************************************************************/
+function improveCertificateCreation(){
+
+}
+
+function addCSRDropDownMenu(){
+            
+    //A certificate is being created and the default certificate signing setting has been enabled
+    var csrdropdown = '<select id="csrdropdownmenu">';
+
+    for(var option in csroptions){
+        csrdropdown += '<option value="' + option + '">' + csroptions[option]["OptionName"] + '</option>';
+    }
+
+    $('#configuration_table tbody').append('<tr><td class="label required">Certificate type</td><td class="settings">' + csrdropdown + '</td></tr>')
+
+    $('#configuration_table tbody tr td #csrdropdownmenu').change(function() {
+
+        //Change to Certificate authority
+        $('#certificate_table tbody tr td select[name=issuer]').val("Certificate Authority");
+
+        //Reflect the changes to the form using the in build function
+        $('#certificate_table tbody tr td select[name=issuer]').trigger("onchange");
+
+        //Get the options for the currently selected certificate and populate the table
+        var selectedcsroption = csroptions[this.value];
+
+        //Populate the common name
+        $('#certificate_table tbody tr td input[name=common_name]').val(selectedcsroption["CommonName"])
+        $('#certificate_table tbody tr td input[name=division]').val(selectedcsroption["Division"])
+        $('#certificate_table tbody tr td input[name=organization]').val(selectedcsroption["Organization"])
+        $('#certificate_table tbody tr td input[name=locality]').val(selectedcsroption["Locality"])
+        $('#certificate_table tbody tr td input[name=state_or_province]').val(selectedcsroption["StateProvince"])
+        $('#certificate_table tbody tr td select[name=country_select]').val(selectedcsroption["Country"])
+        $('#certificate_table tbody tr td input[name=email_address]').val(selectedcsroption["Email"])
+        $('#certificate_table tbody tr td input[name=subject_alternative_name]').val(selectedcsroption["SubjectAlt"])
+
+        //Update the country variable using the in build script
+        $('#certificate_table tbody tr td select[name=country_select]').trigger("onchange");
+    });
+
+    //Set the default value
+    setTimeout(function(){
+        $('#configuration_table tbody tr td #csrdropdownmenu').trigger("change");
+    }, 500);
+}
+
 
 /**************************************************************************
  *      
  *                       Generic functions
+ *
+ **************************************************************************/
+
+function makeCurrentPartitionObjectsBold(){
+    //Get the current partition
+    currentpartition = getCookie("F5_CURRENT_PARTITION")
+
+    $("tbody#list_body tr td a").filter(function(){
+        return $(this).attr("href").indexOf("/" + currentpartition + "") >= 0
+    }).each(function(){
+        $(this).css('font-weight', 700);
+    });
+}
+
+/**************************************************************************
+ *      
+ *                       Helper functions
  *
  **************************************************************************/
 
