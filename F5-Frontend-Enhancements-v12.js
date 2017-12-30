@@ -371,12 +371,13 @@ function improveiRuleProperties(){
 
         //This command generates the data group lists (if any)
         getDataGroupListsFromRule($("textarea#rule_definition").val());
-
+        //getDataGroupListsFromRuleOld($("textarea#rule_definition").val());
         //Update the list on every key stroke
         $(document).on("keyup", function(){
 
             var iRuleContent = codeEditor.gSettings.editor.container.env.document.doc.$lines.join("\n");
             getDataGroupListsFromRule(iRuleContent);
+            //getDataGroupListsFromRuleOld($("textarea#rule_definition").val());
 
         });
 
@@ -389,11 +390,16 @@ function cacheDataGroupLists(updateDGPage){
 
     var DataGroupListLink = "https://" + window.location.host + "/tmui/Control/jspmap/tmui/locallb/datagroup/list.jsp";
 
+    // We want to get all data group lists in case there is a direct reference
+    var currentPartition = getCookie("F5_CURRENT_PARTITION");
+    replaceCookie("F5_CURRENT_PARTITION", "\"[All]\"");
+
     //Request the iRule page to see if the instance exists or not
     $.ajax({
         url: DataGroupListLink,
         type: "GET",
         success: function(response) {
+            
             var dataGroupListLinks = $(response).find('table.list tbody#list_body tr td:nth-child(3) a');
 
             for(i = 0; i < dataGroupListLinks.length; i++){
@@ -405,6 +411,8 @@ function cacheDataGroupLists(updateDGPage){
 
             }
 
+            replaceCookie("F5_CURRENT_PARTITION", currentPartition);
+
             updateDGPage();
         }
     });
@@ -413,7 +421,7 @@ function cacheDataGroupLists(updateDGPage){
 
 //Parses data group list html to get the key/value pairs for the hover information
 
-function parseDataGroupValues(dg){
+function parseDataGroupValues(dg, showBalloon){
 
     var dgLink = 'https://' + window.location.host + '/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?name=' + dg;
     var dghtml;
@@ -422,209 +430,135 @@ function parseDataGroupValues(dg){
         url: dgLink,
         type: "GET",
         success: function(htmlresponse) {
-            dghtml = htmlresponse;
-        },
-        async: false
-    });
+            matches = htmlresponse.match(/<option value="[^"]+(\\x0a)?.+?" >/g);
 
-    matches = dghtml.match(/<option value="[^"]+(\\x0a)?.+?" >/g);
+            //Set the header
+            html = '<span style="color:blue">Key</span> = <span style="color:red">Value</span>'
 
-    //Set the header
-    html = '<span style="color:blue">Key</span> = <span style="color:red">Value</span>'
+            if(matches){
+                for(i=0;i<matches.length;i++){
+                    match = matches[i].replace('<option value="', '').replace('" >', '')
+                    matcharr = match.split('\\x0a')
 
-    if(matches){
-        for(i=0;i<matches.length;i++){
-            match = matches[i].replace('<option value="', '').replace('" >', '')
-            matcharr = match.split('\\x0a')
-
-            if(matcharr.length == 2){
-                html += '<br><span style="color:blue">' + matcharr[0] + '</span> = <span style="color:red">' + matcharr[1] + '</span>';
+                    if(matcharr.length == 2){
+                        html += '<br><span style="color:blue">' + matcharr[0] + '</span> = <span style="color:red">' + matcharr[1] + '</span>';
+                    } else {
+                        html += '<br><span style="color:blue">' + matcharr[0] + '</span> = <span style="color:red">""</span>';
+                    }
+                }
             } else {
-                html += '<br><span style="color:blue">' + matcharr[0] + '</span> = <span style="color:red">""</span>';
+                html += "<br><span style=\"color:blue\">Empty data group list</span>";
             }
-        }
-    } else {
-        html += "<br><span style=\"color:blue\">Empty data group list</span>";
-    }
 
-    return html;
+            //Show the balloon using the callback function
+            showBalloon(html);
+        }
+    });
 }
 
 function getDataGroupListsFromRule(str){
 
-    var bracketcounter = 0;
-    var tempstring = "";
-    var idIterator = 0;
-    var missingDataGroupList = false;
+    "use strict"
 
-    //Go through the iRule and check for brackets. Save the string between the brackets.
-    for(i=0;i<str.length;i++){
+    console.log("executing new rule");
+    console.time('DataGroupLists');
 
-        if(str[i] == "[" && bracketcounter == 0){
-            //A bracket has been found and if the bracketcounter is 0 this is the start of a command
-            bracketcounter = 1;
-        } else if(str[i] == "[") {
-            //A bracket has been found and since the bracket counter is larger than 0 this is a nested command.
-            bracketcounter +=1;
+    let lines = str.split("\n");
+    let partitionPrefix = "/" + getCookie("F5_CURRENT_PARTITION") + "/";
+
+    let foundDataGroupLists = {};
+
+    let updateDGObject = function(dg){
+        let partition = dg.split("/")[1];
+        let name = dg.split("/")[2];
+        if(!(partition in foundDataGroupLists)){
+            foundDataGroupLists[partition] = new Array();
+        }
+        foundDataGroupLists[partition].push(name);
+    };
+
+    for(var i = 0; i < lines.length; i++){
+        
+        // Skip lines that start with a comment
+        if((lines[i].match(/^\s*#/))){
+            continue;
         }
 
-        //The start of a command has been identified, save the character to a string
-        if(bracketcounter > 0){
-            tempstring += str[i];
-        }
+        if(lines[i].indexOf("class ") > -1){
 
-        if(str[i] == "]"){
+            let words = lines[i].split(/[\s\[\]]/);
+            let classIndex = words.indexOf("class");
 
-            //if an end bracket comes along, decrease the bracket counter by one
-            bracketcounter += -1
+            words.map(function(word, index){
 
-            //If the bracket counter is 0 after decreasing the bracket we have reached the end of a command
-            if(bracketcounter == 0){
-
-                //Separate the different words in the command with a regexp
-                //Regexp based on the allowed characters specified by F5 in this article:
-                //https://support.f5.com/kb/en-us/solutions/public/6000/800/sol6869.html
-                var commandarray = tempstring.match(/[a-zA-Z0-9-_./]+/g)
-
-                //The actual command is the first word in the array. Later we'll be looking for class.
-                var command = commandarray[0];
-
-                //The subcommand is the second word. If class has been identified this will be match.
-                var subcommand = commandarray[1];
-
-                //Save the current partition
-                currentpartition = getCookie("F5_CURRENT_PARTITION");
-
-                //If the command is class. I've chosen not to include matchclass for now since it is being deprecated
-                if(command == "class"){
-                    switch(subcommand){
-                        case "lookup":
-                        case "match":
-                        case "element":
-                        case "type":
-                        case "exists":
-                        case "size":
-                        case "startsearch":
-                            //These types always has the data group list in the last element
-                            var dg = commandarray[commandarray.length-1]
-
-                            //Check if a full path to a data group list has been specified and if it's legit
-                            if(dg.indexOf("/") >= 0){
-                                dgarr = dg.split("/")
-                                if(dgarr.length == 3){
-                                    currentpartition = dgarr[1];
-                                    dg = dgarr[2]
-                                } else {
-                                    //An invalid data group list name, skip this one
-                                    continue;
-                                }
-                            }
-                            break;
-                        case "anymore":
-                        case "donesearch":
-                            //These types always has the data group list in the third element
-                            var dg = commandarray[2]
-
-                            //Check if a full path to a data group list has been specified and if it's legit
-                            if(dg.indexOf("/") >= 0){
-                                dgarr = dg.split("/");
-                                if(dgarr.length == 3){
-                                    currentpartition = dgarr[1];
-                                } else {
-                                    //An invalid data group list name, skip this one
-                                    continue;
-                                }
-                            }
-                            break;
-                        case "search":
-                        case "names":
-                        case "get":
-                        case "nextelement":
-                            //Exclude options and find the data group list
-                            for(x=2;x<commandarray.length;x++){
-                                if(commandarray[x][0] != "-"){
-                                    dg=commandarray[x];
-                                    break;
-                                }
-                            }
-
-                            //Check if a full path to a data group list has been specified and if it's legit
-                            if(dg.indexOf("/") >= 0){
-                                dgarr = dg.split("/")
-                                if(dgarr.length == 3){
-                                    currentpartition = dgarr[1];
-                                } else {
-                                    //An invalid data group list name, skip this one
-                                    continue;
-                                }
-                            }
-                            break;
-
-                        default:
-                            continue;
-                    }
-
-                    //Check if the data group list has been detected before
-                    //If it hasn't, add it to the array of detected data group lists
-                    if(detectedarr.indexOf(dg) >= 0){
-                        continue;
-                    } else {
-                        detectedarr.push(dg);
-                    }
-
-                    //Check if the script has detected a previous data group list
-                    if($("td#dglist").html() == ""){
-                        $("td#dglist").html('<div id="dglabel"><span style="font-weight:bold">Detected Data group lists:</span><hr></div>')
-                        $("div#dglabel").append('<div id="Commondg"></div>')
-                    }
-
-                    idIterator++;
-
-                    if(tamperDataGroupLists.indexOf("/Common/" + dg) >= 0){
-                        if($('div#Commondg').text() == ""){
-                            $('div#Commondg').html('<span style="font-weight:bold">/Common:</span><br>')
-                        }
-
-                        $('div#Commondg').append('<a href="https://' + window.location.host + '/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?name=/Common/' + dg + '" id="' + "Common" + dg.replace('.','') + '">' + dg + '</a>' + '<br>');
-                        $('#Common' + dg.replace('.','')).balloon({ position: "left", css: { whitespace: "nowrap" }, showDuration: 0, hideDuration: 0, contents: parseDataGroupValues("/Common/" + dg) });
-
-                    } else if(tamperDataGroupLists.indexOf("/" + currentpartition + "/" + dg) >= 0){
-
-                        var divfriendlypartition = currentpartition.replace(".","");
-
-                        if(!($('div#' + divfriendlypartition + 'dg').length)){
-                            $('div#Commondg').before(('<div id="' + divfriendlypartition + 'dg" style="padding-bottom:5px;"><span style="font-weight:bold;">/' + currentpartition + ':</span><br></div>'))
-                        }
-
-                        $('div#' + divfriendlypartition + 'dg').append('<a href="https://' + window.location.host + '/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?name=/' + currentpartition + '/' + dg + '" id="' + divfriendlypartition + dg.replace('.','') + '">' + dg + '</a><br>');
-
-                        $('#' + divfriendlypartition + dg.replace('.','')).balloon({ position: "left", css: { whitespace: "nowrap" }, showDuration: 0, hideDuration: 0, contents: parseDataGroupValues("/" + currentpartition + "/" + dg) });
-
-                    } else {
-                        delete detectedarr[detectedarr.indexOf(dg)];
-                        $("input#properties_update").css("background", "red");
-                        $("input#properties_update").css("color", "white");
-                        $("input#properties_update").attr("value", "Update (MISSING DATA GROUP LISTS");
-                        missingDataGroupList = true;
-                    }
-
-                    tempstring = "";
+                if(index < classIndex){
+                    return;
                 }
+                
+                if(word !== ""){
+                    if(tamperDataGroupLists.indexOf(word) > -1){
+                        updateDGObject(word);
+                    } else if(tamperDataGroupLists.indexOf(partitionPrefix + word) > -1){
+                        updateDGObject(partitionPrefix + word);
+                    } else if(tamperDataGroupLists.indexOf("/Common/" + word) > -1){
+                        updateDGObject("/Common/" + word);
+                    }
+                }
+
+            });
+        }
+
+    }
+
+    let html = "<div id=\"dglabel\"><span style=\"font-weight:bold\">Detected Data group lists:</span><hr>";
+
+    if (Object.keys(foundDataGroupLists).length === 0 && foundDataGroupLists.constructor === Object){
+        html += "None";
+    } else {
+        for(var partition in foundDataGroupLists){
+
+            let list = foundDataGroupLists[partition];
+
+            html += `
+                <div style="padding-bottom:5px;">
+                    <span style="font-weight:bold;">/` + partition + `:</span>`
+
+            for(let i = 0; i < list.length; i++){
+
+                let fullPath = "/" + partition + "/" + list[i];
+
+                html += `
+                    <br>
+                    <a href="https://f5yp01.j.local/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?name=` + fullPath + `" data-name="` + fullPath + `">` + list[i] + `</a>`;
             }
-        }
 
-        if(str[i] == "\n"){
-            bracketcounter = 0;
-            startindex = 0;
-            tempstring = "";
+            html += `
+                <br>
+                </div>`
         }
     }
 
-    if(missingDataGroupList === false){
-        $("input#properties_update").css("background", "rgb(221, 221, 221)");
-        $("input#properties_update").css("color", "black")
-        $("input#properties_update").attr("value", "Update");
-    }
+    html += "</div>";
+
+    $("td#dglist").html(html);
+
+    $("td#dglist a").each(function(){
+
+        let name = this.getAttribute("data-name");
+        
+        $(this).on("mouseover", function(){
+            if(this.getAttribute("data-done") === null){
+                this.setAttribute("data-done", "true");
+                parseDataGroupValues(name, (balloonContent) => $(this).showBalloon({ position: "left", css: { whitespace: "nowrap" }, showDuration: 0, hideDuration: 0, contents: balloonContent }));
+            }
+        });
+
+        $(this).on("mouseleave", function(){
+            $(this).hideBalloon();
+        });
+    })
+
+    console.timeEnd("DataGroupLists");
 }
 
 /**************************************************************************
@@ -1114,7 +1048,6 @@ function improvePoolMemberProperties(){
                                         <input id="` + c.toLowerCase() + `link" class="monitorcopybox" type="text" value='` + commands.commands[c].string + `'>
                                         </p>
                                     </a>`;
-                                    console.log("Added " + commands.commands[c].string);
                         }
 
                         $(value).append("<td valign=\"middle\">" + html + " </td>");
@@ -1246,7 +1179,7 @@ function getMonitorRequestParameters(sendstring, type, ip, port){
     } else {
         commandObj.success = false;
     }
-    console.log(commandObj);
+
     return commandObj;
 }
 
@@ -1451,7 +1384,7 @@ function addGlobalStyle(css) {
 }
 
 //Get a cookie value. Used to get the current partition
-//Shamelessly stolen from http://www.w3schools.com/js/js_cookies.asp
+//Shamelessly stolen from https://gist.github.com/thoov/984751
 
 function getCookie(cname) {
     var name = cname + "=";
@@ -1463,27 +1396,34 @@ function getCookie(cname) {
     }
     return "";
 }
-
-function deleteCookie(cname){
-    document.cookie = cname + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC";
-}
-
-function setCookie(cname, cvalue) {
-
-    exdays=30;
-    var d = new Date();
-    d.setTime(d.getTime() + (exdays*24*60*60*1000));
-    var expires = "expires="+ d.toUTCString();
-    document.cookie = cname + "=" + cvalue + "; " + expires;
-}
-
-function replaceCookie(cname, cvalue){
-    if(getCookie(cname)){
-        deleteCookie(cname)
+function setCookie(name,value,days) {
+    if (days) {
+        var date = new Date();
+        date.setTime(date.getTime()+(days*24*60*60*1000));
+        var expires = "; expires="+date.toGMTString();
     }
+    else var expires = "";
+    document.cookie = name+"="+value+expires+"; path=/";
+}
 
-    setCookie(cname,cvalue)
+function getCookie(name) {
+    var nameEQ = name + "=";
+    var ca = document.cookie.split(';');
+    for(var i=0;i < ca.length;i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') c = c.substring(1,c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+    }
+    return null;
+}
 
+function deleteCookie(name) {
+    setCookie(name,"",-1);
+}
+
+function replaceCookie(name, value, days){
+    deleteCookie(name);
+    setCookie(name, value, days);
 }
 
 function getUrlVars(){
