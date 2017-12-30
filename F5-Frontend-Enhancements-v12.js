@@ -12,27 +12,28 @@
     This script is meant to enhance the GUI of the LTM in a non intefering way
     Version history:
     Version     Change
-    0.1     Original version
-    0.2     Make sure that the script is not executed when not needed
-    0.3     Adding noConflict to avoid problems with F5's javascripts
-    0.4     Adding iRule links in the virtual server resources tab
-    0.5     Adding default settings when creating pools and monitors
-    0.6     Added parsing for data group lists in iRules and creates links to them
-    0.7     Added parsing for data group content and added it as link hover information
-    0.8     Fixed a problem in the script with the node by default setting
-    0.9     Added automatically selecting the right certificate and key when viewing an SSL profile
-    1.0     Added an option to make objects in the current partition bold to make it easier to
+    0.1     Original version.
+    0.2     Make sure that the script is not executed when not needed.
+    0.3     Adding noConflict to avoid problems with F5's javascripts.
+    0.4     Adding iRule links in the virtual server resources tab.
+    0.5     Adding default settings when creating pools and monitors.
+    0.6     Added parsing for data group lists in iRules and creates links to them.
+    0.7     Added parsing for data group content and added it as link hover information.
+    0.8     Fixed a problem in the script with the node by default setting.
+    0.9     Added automatically selecting the right certificate and key when viewing an SSL profile.
+    1.0     Added an option to make objects in the current partition bold to make it easier to.
             distinguish them from objects in the common partition.
-    1.1     Changed the balloon position to the left and set whitspace to nowrap in order to
+    1.1     Changed the balloon position to the left and set whitspace to nowrap in order to.
             support long data group list values.
-    1.2     Added default options when creating CSR
+    1.2     Added default options when creating CSR.
     1.3	    Now generating monitor test links.
-	2.0		Generating pool status icons
-			Preventing edited data group list entries from being saved
-			Making data-group list parsing more performant
-			Script will automatically match client ssl profile name with certificates and keys using the same name
-    2.0.1   Fixing a bug where the data group list type select box is expanded
-    2.0.2   Adding double clicking on selects
+	2.0		Generating pool status icons.
+			Preventing edited data group list entries from being saved.
+			Making data-group list parsing more performant.
+			Script will automatically match client ssl profile name with certificates and keys using the same name.
+    2.0.1   Fixing a bug where the data group list type select box is expanded.
+    2.0.2   Adding double clicking on selects.
+    2.0.3   Improving data group list scanning.
 	
 */
 
