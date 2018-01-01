@@ -425,7 +425,7 @@ function cacheDataGroupLists(updateDGPage){
 function parseDataGroupValues(dg, showBalloon){
 
     var dgLink = 'https://' + window.location.host + '/tmui/Control/jspmap/tmui/locallb/datagroup/properties.jsp?name=' + dg;
-    var dghtml;
+    var html;
 
     $.ajax({
         url: dgLink,
@@ -453,8 +453,12 @@ function parseDataGroupValues(dg, showBalloon){
 
             //Show the balloon using the callback function
             showBalloon(html);
-        }
+        },
+        async: false
     });
+
+    return html;
+
 }
 
 function getDataGroupListsFromRule(str){
@@ -546,12 +550,34 @@ function getDataGroupListsFromRule(str){
     $("td#dglist a").each(function(){
 
         let name = this.getAttribute("data-name");
-        
+
         $(this).on("mouseover", function(){
-            if(this.getAttribute("data-done") === null){
-                this.setAttribute("data-done", "true");
-                parseDataGroupValues(name, (balloonContent) => $(this).showBalloon({ position: "left", css: { whitespace: "nowrap" }, showDuration: 0, hideDuration: 0, contents: balloonContent }));
+
+            if(this.data === undefined){
+                
+                this.data = parseDataGroupValues(name, (html) => $(this).showBalloon({ 
+                        position: "left",
+                        css: { 
+                            whitespace: "nowrap"
+                        }, 
+                        showDuration: 0,
+                        hideDuration: 0,
+                        contents: html
+                }));
+
+            } else {
+
+                $(this).showBalloon({ 
+                        position: "left",
+                        css: { 
+                            whitespace: "nowrap"
+                        }, 
+                        showDuration: 0,
+                        hideDuration: 0,
+                        contents: this.data
+                });
             }
+
         });
 
         $(this).on("mouseleave", function(){
