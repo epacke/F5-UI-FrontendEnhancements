@@ -35,6 +35,7 @@
     2.0.2   Adding double clicking on selects.
     2.0.3   Improving data group list scanning.
     2.0.4   Caching data group list content in iRules instead of fetching on every mouse over.
+    2.0.5   Removing old code.
 	
 */
 
