@@ -34,6 +34,7 @@
     2.0.1   Fixing a bug where the data group list type select box is expanded.
     2.0.2   Adding double clicking on selects.
     2.0.3   Improving data group list scanning.
+    2.0.4   Caching data group list content in iRules instead of fetching on every mouse over.
 	
 */
 
@@ -554,7 +555,7 @@ function getDataGroupListsFromRule(str){
         $(this).on("mouseover", function(){
 
             if(this.data === undefined){
-                
+
                 this.data = parseDataGroupValues(name, (html) => $(this).showBalloon({ 
                         position: "left",
                         css: { 
