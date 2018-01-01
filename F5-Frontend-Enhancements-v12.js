@@ -780,14 +780,10 @@ function improveVirtualServerProperties(){
         //  SSL Profile (client)
         addDoubleClick("selectedclientsslprofiles", "availableclientsslprofiles_button");
         addDoubleClick("availableclientsslprofiles", "selectedclientsslprofiles_button");
-        addContextMenu("selectedclientsslprofiles", "SSL Profile Config", "/tmui/Control/jspmap/tmui/locallb/profile/clientssl/properties.jsp?name=");
-        addContextMenu("availableclientsslprofiles", "SSL Profile Config", "/tmui/Control/jspmap/tmui/locallb/profile/clientssl/properties.jsp?name=");
 
         //  SSL Profile (server)
         addDoubleClick("selectedserversslprofiles", "availableserversslprofiles_button");
         addDoubleClick("availableserversslprofiles", "selectedserversslprofiles_button");
-        addContextMenu("selectedserversslprofiles", "SSL Profile Config", "/tmui/Control/jspmap/tmui/locallb/profile/serverssl/properties.jsp?name=");
-        addContextMenu("availableserversslprofiles", "SSL Profile Config", "/tmui/Control/jspmap/tmui/locallb/profile/serverssl/properties.jsp?name=");
 
         //  VLANs and Tunnels
         addDoubleClick("selected_vlans", "available_vlans_button");
@@ -1368,30 +1364,6 @@ function endsWith(str, suffix) {
 // https://github.com/jangins101/
 function addDoubleClick(el, btn) {
     $("#" + el).dblclick(function() {  $("#" + btn).click(); });
-}
-
-// Credit to Michael Jenkins for this one.
-// https://github.com/jangins101/
-
-function addContextMenu(el, title, uri) {
-
-//addContextMenu("availableserversslprofiles", "SSL Profile Config", "/tmui/Control/jspmap/tmui/locallb/profile/serverssl/properties.jsp?name=");
-
-//var m = "clicked: " + key + " on " + $(this).text();
-//            window.console && console.log(m) || alert(m); 
-
-    $("#" + el).contextMenu({
-        selector: 'option', 
-        callback: function(key, options) {
-            window.location = "https://" + window.location.host + uri + $(this).text().trim();
-            console.log("https://" + window.location.host + uri + $(this).text())
-        },
-        items: {
-            "Open": {name: "Open"},
-            "OpenNew": {name: "Open (New window)"}
-        }
-    });
-    
 }
 
 //Taken from sourceforge
