@@ -37,6 +37,7 @@
     2.0.4   Caching data group list content in iRules instead of fetching on every mouse over.
     2.0.5   Removing old code.
     2.0.6   Adding partition filters
+    2.0.7   Allowing users to choose if they want to activate the script on v13
     
 */
 
@@ -268,6 +269,22 @@
 
     var allowChristmas = true;
 
+    /**************************************************************************
+        *This is a BETA, please report any bugs in this thread:
+        https://devcentral.f5.com/codeshare/webui-tweaks-v12-1109
+
+        This option allows the script to run on on v13:
+
+        Default:
+        allow13 = false;
+        
+        To allow the script to be active on v13 devices:
+        allow13 = true;
+
+    ***************************************************************************/
+
+    allow13 = false;
+
 /***************************************************************************************
                         End Config section
 ****************************************************************************************/
@@ -284,7 +301,8 @@ var poolStatuses;
 var versionInfo = $(parent.top.document).find("div#deviceid div span").attr("title");
 var version = versionInfo.split(" ")[1];
 
-if(version.split(".")[0] === "12"){
+if (version.split(".")[0] === "12" || (allow13 && version.split(".")[0] === "13")) {
+
     (function() {
 
         //This is the popup text divs that pops up when hovering data group lists
