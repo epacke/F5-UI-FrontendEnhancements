@@ -36,6 +36,7 @@
     2.0.3   Improving data group list scanning.
     2.0.4   Caching data group list content in iRules instead of fetching on every mouse over.
     2.0.5   Removing old code.
+    2.0.6   Adding partition filters
 	
 */
 
@@ -342,10 +343,74 @@ if(version.split(".")[0] === "12"){
 		if(uriContains("/tmui/Control/jspmap/tmui/locallb/datagroup/create.jsp")){
 		    improveDataGroupListEditing();    
         }
+
+        if($(parent.top.document).find("input#partitionFilter").length == 0){
+            addPartitionFilter();
+        }
 		
 		
 	})();
 }
+
+/**************************************************************************
+ *      
+ *                        Add the partition filter
+ *
+ **************************************************************************/
+
+function addPartitionFilter(){
+
+    initiateBaloon();
+
+    var partitionDiv = $(parent.top.document).find("div#partition");
+
+    // Add the filter input and the label
+    partitionDiv.prepend("<input size=10 id=\"partitionFilter\"/>  ")
+    partitionDiv.prepend("<label>Partition filter <a title=\"Hit enter to activate the selected partition\" id=\"partitionFilterHelp\">[?]</span>: </label>");
+
+    var partitionDropDown = partitionDiv.find("select#partition_control");
+    var partitonOptions = partitionDropDown.find("option");
+    var partitionFilterInput = partitionDiv.find("input#partitionFilter");
+    
+    partitionFilterInput.on("keyup", function(e){
+        
+        if(e.keyCode === 13){
+            triggerEvent("change", parent.top.document.querySelector("div#partition select#partition_control"))
+            return;
+        }
+
+        var searchValue = this.value;
+
+        // Set the local storage in order to re-populate the filter upon page reload 
+        localStorage.setItem("tamperMonkeyPartitoinFilter", searchValue);
+
+        var re = new RegExp(searchValue, "i");
+
+        partitonOptions.each(function(){
+            if($(this).val().match(re) || $(this).val() === "[All]"){
+                $(this).attr("ismatch", "true")
+                $(this).show();
+            } else {
+                $(this).attr("ismatch", "false")
+                $(this).hide();
+            }
+        });
+
+        var selectedOption = partitionDropDown.find("option:selected");
+        var selectedOptionValue = selectedOption.val() || ""
+        var matchedCount = partitionDropDown.find("option[ismatch='true']").length;
+        
+        if(!selectedOptionValue.match(re) && matchedCount > 0){
+            selectedOption.removeAttr("selected");
+            partitionDropDown.find("option[ismatch='true']:eq(0)").attr("selected", "selected");
+        }
+
+    })
+
+    partitionFilterInput.val(localStorage.getItem("tamperMonkeyPartitoinFilter") || "").trigger("keyup");
+
+}
+
 
 /**************************************************************************
  *      
@@ -1352,6 +1417,17 @@ function makeCurrentPartitionObjectsBold(){
  *                       Helper functions
  *
  **************************************************************************/
+
+// Used to in cases where jQuery caches the selector at the begining of the script.
+function triggerEvent(ev, el){
+    "use strict";
+
+    var event = document.createEvent('HTMLEvents');
+    event.initEvent(ev, true, true);
+    el.dispatchEvent(event);
+
+}
+
 
 function log(s, c = "black"){
     console.log("%c " + s, "color: " + c);
