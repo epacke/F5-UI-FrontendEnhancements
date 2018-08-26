@@ -300,6 +300,56 @@ var poolStatuses;
 
 var versionInfo = $(parent.top.document).find("div#deviceid div span").attr("title");
 var version = versionInfo.split(" ")[1];
+var majorVersion = version.split(".")[0];
+
+var enhancementFunctions = {
+
+    "enhanceiRuleProperties": new function(){
+
+        // Scans for data group lists in an iRule and adds data group lists on the side
+        this.name = "Improve iRule editor";
+        this.description = `<ul>
+                                <li>Scans iRule for data group lists</li>
+                                <li>Adds detected data group lists to the right side of the iRule editor</li>
+                                <li>Hovering the mouse over an iRule shows the data group list content</li>
+                            </ul>`;
+        this.enabled = true;
+        this.appliesToVersion = ["12", "13"];
+        this.applicable = function(){
+            return uriContains("/tmui/Control/jspmap/tmui/locallb/rule/properties.jsp") && this.appliesToVersion.indexOf(majorVersion) != -1 && this.enabled
+        };
+        this.enhance = improveiRuleProperties;
+
+    },
+    "improveiRuleSelection": new function(){
+
+        this.name = "Improve virtual server iRules management";
+        this.description = `<ul>
+                                <li>Increases the selection box</li>
+                                <li>Adds double click to move between sections.</li>
+                            </ul>`;
+        this.enabled = true;
+        this.appliesToVersion = ["12", "13"];
+        this.applicable = function(){
+            return uriContains("/tmui/Control/form?__handler=/tmui/locallb/virtual_server/resources&__source=Manage")
+                && this.appliesToVersion.indexOf(majorVersion) != -1
+                && this.enabled
+        };
+        this.enhance = improveiRuleSelection;
+
+    }
+
+}
+
+for(i in enhancementFunctions){
+    var f = enhancementFunctions[i];
+    if(f.applicable()){
+        f.enhance();
+    }
+}
+
+
+
 
 if (version.split(".")[0] === "12" || (allow13 && version.split(".")[0] === "13")) {
 
@@ -308,13 +358,6 @@ if (version.split(".")[0] === "12" || (allow13 && version.split(".")[0] === "13"
         //This is the popup text divs that pops up when hovering data group lists
         initiateBaloon();
 
-        if(ParseDataGroupLists && uriContains("/tmui/Control/jspmap/tmui/locallb/rule/properties.jsp")){
-            improveiRuleProperties();
-        }
-
-        if(uriContains("/tmui/Control/form?__handler=/tmui/locallb/virtual_server/resources&__source=Manage")){
-            improveiRuleSelection();
-        }
 
         if($("select[name=mon_type]").length){
             addMonitorPrefix();
@@ -381,11 +424,12 @@ if (version.split(".")[0] === "12" || (allow13 && version.split(".")[0] === "13"
 
         // Special request from Devcentral member Boneyard:
         // alwaysChristmas will always activate Christmas if declared
-        if((allowChristmas && isItChristmas()) || alwaysChristmas !== undefined){
+        /*if((allowChristmas && isItChristmas()) || alwaysChristmas !== undefined){
             showChristmasOption();
         } else {
             localStorage.removeItem("tamperMonkey-snowActicated");
         }
+        */
         
     })();
 }
