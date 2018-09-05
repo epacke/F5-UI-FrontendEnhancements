@@ -210,10 +210,11 @@
     var allowChristmas = true;
 
     /**************************************************************************
+        How often should the script update the LTM log stats (in seconds)
         ltmLogCheckInterval = 30;
     **************************************************************************/
 
-    var ltmLogCheckInterval = 10;
+    var ltmLogCheckInterval = 30;
 
 /***************************************************************************************
                         End Config section
@@ -663,7 +664,7 @@ function startLTMLogFetcher(){
         var seconds = (now.getTime() - lastSynced.getTime()) / 1000;
     }
 
-    setInterval(function(){
+    var fetchLTMLog = function(){
         $.ajax({
             url: "https://" + window.location.host + "/tmui/Control/jspmap/tmui/system/log/list_ltm.jsp",
             type: "GET",
@@ -698,8 +699,10 @@ function startLTMLogFetcher(){
             }
             
         })
+    }
 
-    }, ltmLogCheckInterval*1000);
+    fetchLTMLog();
+    setInterval(fetchLTMLog, ltmLogCheckInterval*1000);
 }
 
 function initiateLTMLogStatistics(){
@@ -732,7 +735,7 @@ function initiateLTMLogStatistics(){
             parameterList.push(`
                     <div class="" id="logStats` + i +  `">
                         <label>` + ltmLogPatterns[i].name + `:</label>
-                        <span>Unknown</span>
+                        <span>Loading...</span>
                     </div>`
             );
         }
