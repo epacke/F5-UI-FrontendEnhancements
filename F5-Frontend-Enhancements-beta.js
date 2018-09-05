@@ -209,6 +209,12 @@
 
     var allowChristmas = true;
 
+    /**************************************************************************
+        ltmLogCheckInterval = 30;
+    **************************************************************************/
+
+    var ltmLogCheckInterval = 10;
+
 /***************************************************************************************
                         End Config section
 ****************************************************************************************/
@@ -225,6 +231,62 @@ var poolStatuses;
 var versionInfo = $(parent.top.document).find("div#deviceid div span").attr("title");
 var version = versionInfo.split(" ")[1];
 var majorVersion = version.split(".")[0];
+
+var logDatabase;
+
+
+var ltmLogPatterns = {
+    "poolFailures": new function(){
+        this.enabled = true;
+        this.name = "Pool failures";
+        this.isMatching = function(event){
+            return(event.logEvent.match(/^Pool.+monitor status down/) !== null);
+        }
+    },
+    "nodeFailures": new function(){
+        this.enabled = true;
+        this.name = "Node failures";
+        this.isMatching = function(event){
+            return(event.logEvent.match(/^Node.+monitor status down/) !== null);
+        }
+    },
+    "errors": new function(){
+        this.enabled = true;
+        this.name = "Errors";
+        this.isMatching = function(event){
+            return(event.logLevel === "error");
+        }
+    },
+    "warnings": new function(){
+        this.enabled = true;
+        this.name = "Warnings";
+        this.isMatching = function(event){
+            return(event.logLevel === "warning");
+        }
+    },
+    "tclErrors": new function(){
+        this.enabled = true;
+        this.name = "TCL Errors";
+        this.isMatching = function(event){
+            return(event.logEvent.match(/^TCL error/) !== null);
+        }
+    },
+    "aggressiveMode": new function(){
+        this.enabled = true;
+        this.name = "Aggressive Mode"
+        this.isMatching = function(event){
+            return(event.logEvent.match(/aggressive mode activated/) !== null);
+        }
+    },
+    "addressConflicts": new function(){
+        this.enabled = true;
+        this.name = "Address Conflicts"
+        this.isMatching = function(event){
+            return(event.logEvent.match(/address conflict detected for/) !== null);
+        }
+    }
+}
+
 
 var enhancementFunctions = {
 
@@ -523,7 +585,7 @@ var enhancementFunctions = {
         this.name = "CSR profiles";
         this.description = `<ul>
                                 <li>Adds a drop down menu with predefined CSR options</li>
-                            </ul>`
+                            </ul>`;
         this.enabled = true;
         this.appliesToVersion = ["12", "13", "14"];
         
@@ -535,11 +597,27 @@ var enhancementFunctions = {
 
         this.enhance = addCSRDropDownMenu;
 
+    }, "addLTMLogSummary": new function(){
+        this.name = "LTM log features";
+        this.description = `<ul>
+                                <li>Adds information from the LTM log to the top bar</li>
+                                <li>Shows pool failures in the pool list</li>
+                            </ul>`;
+        this.enabled = true;
+        this.appliesToVersion = ["12", "13", "14"];
+
+        this.applicable = function(){
+            return uriContains("/tmui/Control/jspmap/tmui/overview/welcome/introduction.jsp")
+                && this.appliesToVersion.indexOf(majorVersion) != -1
+                && this.enabled;
+        };
+
+        this.enhance = startLTMLogFetcher;
     }
 
-
-
 }
+
+
 
 initiateBaloon();
 
@@ -555,6 +633,167 @@ for(i in enhancementFunctions){
  *                  Modify the top frame
  *
  **************************************************************************/
+
+String.prototype.hashCode = function(){
+    var hash = 0;
+    if (this.length == 0) return hash;
+    for (i = 0; i < this.length; i++) {
+        char = this.charCodeAt(i);
+        hash = ((hash<<5)-hash)+char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash;
+}
+
+
+
+function startLTMLogFetcher(){
+
+    //Check if the database contains anything
+    if(typeof(logDatabase) === "undefined"){
+        var rawData = localStorage.getItem("ltmLog") || "{\"content\":{},\"lastSynced\":null}";
+        logDatabase = JSON.parse(rawData);
+        //updateLTMLogStatistics(getLTMLogStatisticsSummary(logDatabase));
+        initiateLTMLogStatistics();
+    }
+
+    if(logDatabase.lastSynced){
+        var lastSynced = new Date(logDatabase.lastSynced);
+        var now = new Date();
+        var seconds = (now.getTime() - lastSynced.getTime()) / 1000;
+    }
+
+    setInterval(function(){
+        $.ajax({
+            url: "https://" + window.location.host + "/tmui/Control/jspmap/tmui/system/log/list_ltm.jsp",
+            type: "GET",
+            success: function(response) {
+                $(response).find("table.list tbody tr").each(function(){
+                    
+                    var message = {}
+                    
+                    row = $(this).find("td");
+
+                    message.timeStamp = $(row[0]).text().trim();
+                    message.logLevel = $(row[1]).text().trim();
+                    message.host = $(row[2]).text().trim();
+                    message.service = $(row[3]).text().trim();
+                    message.statusCode = $(row[4]).text().trim();
+                    message.logEvent = $(row[5]).text().trim();
+
+                    var data = "";
+                    for(i in message){
+                        data += message[i]
+                    }
+
+                    if(!(data in logDatabase)){
+                        logDatabase.content[data] = message
+                    }
+
+                    logDatabase.lastSynced = new Date();
+                })
+
+                updateLTMLogStatistics(getLTMLogStatisticsSummary(logDatabase));
+                localStorage.setItem("ltmLog", JSON.stringify(logDatabase));
+            }
+            
+        })
+
+    }, ltmLogCheckInterval*1000);
+}
+
+function initiateLTMLogStatistics(){
+
+    var topFrame = $(parent.top.document);
+
+    if(topFrame.find("div.ltmLogStats").length == 0){
+
+        var styleTag = $(`<style>
+                                .ltmLogStats { 
+                                    float: left;
+                                    padding: 0 15px;
+                                    border-right: 1px dotted #444;
+                                    margin: 0;
+                                }
+                        </style>`);
+        
+        topFrame.find('html > head').append(styleTag);
+        var html = ``;
+
+        var parameterList = [];
+
+        for(var i in ltmLogPatterns){
+
+            if(parameterList.length == 2){
+                html += `<div class="ltmLogStats" id="ltmLogStats">` + parameterList.join("") + `</div>`
+                parameterList = [];
+            }
+            
+            parameterList.push(`
+                    <div class="" id="logStats` + i +  `">
+                        <label>` + ltmLogPatterns[i].name + `:</label>
+                        <span>Unknown</span>
+                    </div>`
+            );
+        }
+
+        if(parameterList.length != 0){
+            html += `<div class="ltmLogStats">` + parameterList.join("") + `</div>`
+        }
+
+        topFrame.find("div#userinfo").last().after(html);
+        
+    }
+
+}
+
+function updateLTMLogStatistics(summary){
+
+    var topFrame = $(parent.top.document);
+
+    if(topFrame.find("div.ltmLogStats").length != 0){
+
+        var i = 0
+        for(var stats in summary){
+            var statsSpan = topFrame.find("div#logStats" + stats + " span");
+            statsSpan.fadeOut(300);
+            statsSpan.html(summary[stats]);
+            statsSpan.fadeIn(300);
+        }
+
+    }
+    
+}
+
+function getLTMLogStatisticsSummary(logDatabase){
+
+    var summary = {};
+    var events = logDatabase.content;
+
+    for(var f in ltmLogPatterns){
+        logTest = ltmLogPatterns[f];
+        if(logTest.enabled){
+            summary[f] = 0;
+        }
+    }
+
+    for(var i in events){
+        
+        var event = events[i];
+
+        for(functionName in ltmLogPatterns){
+
+            var f = ltmLogPatterns[functionName];
+            if(f.isMatching(event)){
+                summary[functionName]++;
+            }
+        }
+
+    }
+
+    return(summary);
+
+}
 
 function isItChristmas(){
     var d = new Date();
@@ -753,7 +992,7 @@ function addPartitionFilter(){
 
     // Add the filter input and the label
     partitionDiv.prepend("<input size=10 id=\"partitionFilter\"/>  ")
-    partitionDiv.prepend("<label>Partition filter <a title=\"Hit enter to activate the selected partition\" id=\"partitionFilterHelp\">[?]</span>: </label>");
+    partitionDiv.prepend("<label>Partition filter <a title=\"Hit enter to activate the selected partition\" id=\"partitionFilterHelp\" href=\"https://loadbalancing.se/f5-webui-tweaks/#Partition_filtering\" target=\"_blank\">[?]</a>: </label>");
 
     var partitionDropDown = partitionDiv.find("select#partition_control");
     var partitonOptions = partitionDropDown.find("option");
@@ -975,7 +1214,7 @@ function getDataGroupListsFromRule(str){
 
             html += `
                 <div style="padding-bottom:5px;">
-                    <span style="font-weight:bold;">/` + partition + `:</span>`
+                    <span style="font-weight:bold;">/` + partition + `:</span>`;
 
             for(let i = 0; i < list.length; i++){
 
@@ -1057,7 +1296,7 @@ function improveDataGroupListEditing(){
                                                     <input type="button" value="Merge the lists" id="bulkMerge"/>
                                                     <input type="button" value="Replace current list" id="bulkReplace"/>
                                                     <input type="button" value="Edit active list" id="bulkEdit"/>
-                                                    <input type="button" value="Help" id="bulkHelp"/>
+                                                    <input type="button" value="Help" id="bulkHelp" onClick="window.open('https://loadbalancing.se/webui-tweaks-manual/#Data_group_list_editing','_blank')"/>
                                                     </td>
                                                     `
                                             )
@@ -1129,21 +1368,6 @@ function improveDataGroupListEditing(){
         
         $("textarea.bulkcontent:visible").val(keyVals.join("\n"));
         
-    })
-    
-    $("input#bulkHelp").on("click", function(){
-        alert(`Bulk import help:
-
-Merge the lists: 
-Takes all the records in the import text area, compares them to the active list and imports the records that does not have duplicate keys.
-This means that if "apple" := "banana" exists in the active list and the import list has "apple" := "banana", then "apple" := "banana" won't be imported.
-
-Replace the current list:
-Takes all the records in the import text area and replaces the active list. Duplicate records are ignored like with "Merge the lists".
-
-Edit active list:
-Moves all the records from the active list to the import list.
-`);
     })
 
 }
