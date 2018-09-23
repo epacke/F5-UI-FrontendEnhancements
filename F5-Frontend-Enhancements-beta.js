@@ -621,7 +621,7 @@ var globalNameSpace = {
             this.description = `<ul>
                                     <li>Get regular pool states to populate statistics and show smarter overview.</li>
                                 </ul>`;
-            this.enabled = false;
+            this.enabled = true;
             this.appliesToVersion = ["12", "13", "14"];
 
 
@@ -638,7 +638,6 @@ var globalNameSpace = {
 
     }
 }
-
 
 initiateBaloon();
 
