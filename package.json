@@ -1,0 +1,29 @@
+{
+  "name": "f5-ui-frontendenhancements",
+  "version": "1.0.0",
+  "description": "Enhances the F5 Web UI",
+  "main": "build.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/epacke/F5-UI-FrontendEnhancements.git"
+  },
+  "keywords": [
+    "TamperMonkey",
+    "F5",
+    "WebUI",
+    "Enhancements"
+  ],
+  "author": "Patrik Jonsson",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/epacke/F5-UI-FrontendEnhancements/issues"
+  },
+  "homepage": "https://github.com/epacke/F5-UI-FrontendEnhancements#readme",
+  "dependencies": {
+    "fs": "0.0.1-security",
+    "walk": "^2.3.14"
+  }
+}
