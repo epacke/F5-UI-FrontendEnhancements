@@ -734,7 +734,10 @@ class Pools {
 
 function startPoolStatePoller(){
     var pools = new Pools();
-    setInterval(() => { pools.updatePoolData(); console.log(pools) }, 5000);
+    //setInterval(() => { 
+        pools.updatePoolData();
+        console.log(pools)
+    // }, 5000);
 }
 
 function getToken() {
