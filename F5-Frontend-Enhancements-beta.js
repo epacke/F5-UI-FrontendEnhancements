@@ -626,7 +626,7 @@ var enhancementFunctions = {
 
 initiateBaloon();
 
-for(i in enhancementFunctions){
+for(var i in enhancementFunctions){
     var f = enhancementFunctions[i];
     if(f.applicable()){
         f.enhance();
@@ -642,8 +642,8 @@ for(i in enhancementFunctions){
 String.prototype.hashCode = function(){
     var hash = 0;
     if (this.length == 0) return hash;
-    for (i = 0; i < this.length; i++) {
-        char = this.charCodeAt(i);
+    for (var i = 0; i < this.length; i++) {
+        var char = this.charCodeAt(i);
         hash = ((hash<<5)-hash)+char;
         hash = hash & hash; // Convert to 32bit integer
     }
@@ -677,7 +677,7 @@ function startLTMLogFetcher(){
 
                     var message = {}
 
-                    row = $(this).find("td");
+                    var row = $(this).find("td");
 
                     message.timeStamp = $(row[0]).text().trim();
                     message.logLevel = $(row[1]).text().trim();
@@ -687,7 +687,7 @@ function startLTMLogFetcher(){
                     message.logEvent = $(row[5]).text().trim();
 
                     var data = "";
-                    for(i in message){
+                    for(var i in message){
                         data += message[i]
                     }
 
@@ -737,7 +737,7 @@ function initiateLTMLogStatistics(){
             }
 
             parameterList.push(`
-                    <div class="" id="logStats` + i +  `">
+                    <div class="" id="logStats` + i + `">
                         <label>` + ltmLogPatterns[i].name + `:</label>
                         <span>Loading...</span>
                     </div>`
@@ -778,7 +778,7 @@ function getLTMLogStatisticsSummary(logDatabase){
     var events = logDatabase.content;
 
     for(var f in ltmLogPatterns){
-        logTest = ltmLogPatterns[f];
+        var logTest = ltmLogPatterns[f];
         if(logTest.enabled){
             summary[f] = 0;
         }
@@ -851,14 +851,14 @@ function showChristmasOption(){
 
 // This function handles the Christmas theme (santa hat on the F5 ball and snow)
 
-function letItSnow(canvas, w, h){
+function letItSnow(){
 
     if(parent.top.document.getElementById("xmas") === null){
 
         var b = parent.top.document.getElementById("banner");
         var logo = parent.top.document.getElementById("logo");
         var image = $(logo).find("img");
-        var position  = image.position();
+        var position = image.position();
 
         $(logo).prepend("<div style=\"position:absolute;left:" + (position.left - 3) + "px;top:" + (position.top - 20) + "px;pointer-events: none;\"><canvas id=\"santahat\"></canvas></div>")
         createSantaHat(parent.top.document.getElementById("santahat"));
@@ -1101,7 +1101,7 @@ function cacheDataGroupLists(updateDGPage){
 
             var dataGroupListLinks = $(response).find('table.list tbody#list_body tr td:nth-child(3) a');
 
-            for(i = 0; i < dataGroupListLinks.length; i++){
+            for(var i = 0; i < dataGroupListLinks.length; i++){
 
                 var link = dataGroupListLinks[i].href;
                 var name = link.split("name=")[1];
@@ -1129,15 +1129,15 @@ function parseDataGroupValues(dg, showBalloon){
         url: dgLink,
         type: "GET",
         success: function(htmlresponse) {
-            matches = htmlresponse.match(/<option value="[^"]+(\\x0a)?.+?" >/g);
+            var matches = htmlresponse.match(/<option value="[^"]+(\\x0a)?.+?" >/g);
 
             //Set the header
             html = '<span style="color:blue">Key</span> = <span style="color:red">Value</span>'
 
             if(matches){
-                for(i=0;i<matches.length;i++){
-                    match = matches[i].replace('<option value="', '').replace('" >', '')
-                    matcharr = match.split('\\x0a')
+                for(var i=0; i < matches.length; i++){
+                    var match = matches[i].replace('<option value="', '').replace('" >', '')
+                    var matcharr = match.split('\\x0a')
 
                     if(matcharr.length == 2){
                         html += '<br><span style="color:blue">' + matcharr[0] + '</span> = <span style="color:red">' + matcharr[1] + '</span>';
@@ -1430,7 +1430,7 @@ function improveDataGroupListProperties(){
 
 function validateDGObject(lines){
     //Validate that all records has one or no delimiter
-    return  !(lines.some(function(line){
+    return !(lines.some(function(line){
         return (line.split(/\s*:=\s*/i).length > 2)
     }));
 }
@@ -1540,7 +1540,7 @@ function improvePoolList(){
 
                 var memberName = $(this).find("td").eq(3).text().trim();
                 var statusIcon = $(this).find("td").eq(1).find("img").attr("src");
-                var title  = $(this).find("td").eq(1).find("img").attr("title");
+                var title = $(this).find("td").eq(1).find("img").attr("title");
 
                 poolStatuses[poolName][memberName] = { "icon": statusIcon, "title": title };
 
@@ -1553,9 +1553,9 @@ function improvePoolList(){
 
                 if(poolName in poolStatuses){
 
-                    memberStatuses = poolStatuses[poolName];
+                    var memberStatuses = poolStatuses[poolName];
 
-                    for(memberStatus in memberStatuses){
+                    for(var memberStatus in memberStatuses){
                         if(existingIcons.indexOf(memberStatuses[memberStatus]["icon"]) === -1){
                             existingIcons.push(memberStatuses[memberStatus]["icon"]);
                         }
@@ -1565,7 +1565,7 @@ function improvePoolList(){
 
                         var html = "<div data-poolname=\"" + poolName + "\" class=\"tamperpoolstatus\" style=\"margin-left:21px;margin-bottom:15px;\">";
 
-                        for(i = 0; i < existingIcons.length;i++){
+                        for(var i = 0; i < existingIcons.length; i++){
 
                             iconURL = existingIcons[i].replace(/\/.*_/i, "/tmui/tmui/skins/Default/images/status_circle_");
 
@@ -1702,19 +1702,19 @@ function improvePoolMemberProperties(){
         addDoubleClick("available_monitor_select", "monitor_rule_button");
 
         //Add global style
-        var css =   `a.monitortest {  position: relative;  display: inline;  color:#000000;}
-                    a.monitortest p {  position: absolute;  color: #000;  top:-50px;  left:-55px;
-                    background: #f7f6f5;  border: 1px solid #000;  padding-left:5px;  padding-right:5px;
-                    padding-top:2px;  padding-bottom:0px;  height: 30px;  text-align: center;
-                    visibility: hidden;  border-radius: 2px;  font-size:12px;  font-weight:bold; }
-                    a:hover.monitortest p {  visibility: visible;  bottom: 30px;  z-index: 999; }
-                    .monitorcopybox { width:140px;font-weight:normal;font-size:10px;margin-bottom:1px;}
-                    button.monitortestbutton { font-size:12px; }`;
+        var css = `a.monitortest {  position: relative;  display: inline;  color:#000000;}
+                a.monitortest p {  position: absolute;  color: #000;  top:-50px;  left:-55px;
+                background: #f7f6f5;  border: 1px solid #000;  padding-left:5px;  padding-right:5px;
+                padding-top:2px;  padding-bottom:0px;  height: 30px;  text-align: center;
+                visibility: hidden;  border-radius: 2px;  font-size:12px;  font-weight:bold; }
+                a:hover.monitortest p {  visibility: visible;  bottom: 30px;  z-index: 999; }
+                .monitorcopybox { width:140px;font-weight:normal;font-size:10px;margin-bottom:1px;}
+                button.monitortestbutton { font-size:12px; }`;
 
         addGlobalStyle(css);
 
-        ip = $("#member_address td.settings").text().trim();
-        port = $("#member_port td.settings").text().trim();
+        var ip = $("#member_address td.settings").text().trim();
+        var port = $("#member_port td.settings").text().trim();
 
         $('#general_table tbody tr td.settings').not('tr#member_health_monitors_status').each(function(){
             $(this).attr("colspan", 2);
@@ -1734,6 +1734,7 @@ function improvePoolMemberProperties(){
                     "use strict";
 
                     var type = "";
+                    var sendstring;
 
                     if($(response).find("#monitor_send_string").length){
 
@@ -1743,8 +1744,8 @@ function improvePoolMemberProperties(){
                     } else if ($(response).find("#div_configuration_table table tbody tr td:contains('Send String')")) {
 
                         // Default monitors does not have the same page structure as the normal ones. Needs special treatment.
-                        var sendstring = $(response).find("#div_configuration_table table tbody tr").find("td:contains('Send String')").next().text().trim();
-                        var type = $(response).find("#general_table tbody tr").find("td:contains('Type')").next().text().trim();
+                        sendstring = $(response).find("#div_configuration_table table tbody tr").find("td:contains('Send String')").next().text().trim();
+                        type = $(response).find("#general_table tbody tr").find("td:contains('Type')").next().text().trim();
 
                     }
 
@@ -1848,10 +1849,11 @@ function getMonitorRequestParameters(sendstring, type, ip, port){
 
         //Parse for headers
         var headersarr = sendstring.split('\\r\\n');
+        var i;
 
         if(headersarr.length > 2){
 
-            for(var i in headersarr){
+            for(i in headersarr){
 
                 var header = headersarr[i];
 
@@ -1870,7 +1872,7 @@ function getMonitorRequestParameters(sendstring, type, ip, port){
         }
 
         if(headers.length > 0){
-            for(var i in headers){
+            for(i in headers){
                var headerarr = headers[i].split(":");
                var headername = headerarr[0].trim();
                var headervalue = headerarr[1].trim();
@@ -1959,8 +1961,8 @@ function matchCertAndKey(){
 
     $('select#cert').on("change", function(){
 
-        certName = $(this).val();
-        probableKeyName = certName.replace(/\.crt$/, ".key");
+        var certName = $(this).val();
+        var probableKeyName = certName.replace(/\.crt$/, ".key");
 
         $('select#key').val(probableKeyName);
 
@@ -2028,7 +2030,7 @@ function addCSRDropDownMenu(){
 
 function makeCurrentPartitionObjectsBold(){
     //Get the current partition
-    currentpartition = getCookie("F5_CURRENT_PARTITION")
+    var currentpartition = getCookie("F5_CURRENT_PARTITION")
 
     $("tbody#list_body tr td a").filter(function(){
         return $(this).attr("href").indexOf("/" + currentpartition + "") >= 0
@@ -2095,24 +2097,14 @@ function getCookie(cname) {
     return "";
 }
 function setCookie(name,value,days) {
+    var expires;
     if (days) {
         var date = new Date();
         date.setTime(date.getTime()+(days*24*60*60*1000));
-        var expires = "; expires="+date.toGMTString();
+        expires = "; expires="+date.toGMTString();
     }
-    else var expires = "";
+    else expires = "";
     document.cookie = name+"="+value+expires+"; path=/";
-}
-
-function getCookie(name) {
-    var nameEQ = name + "=";
-    var ca = document.cookie.split(';');
-    for(var i=0;i < ca.length;i++) {
-        var c = ca[i];
-        while (c.charAt(0)==' ') c = c.substring(1,c.length);
-        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
-    }
-    return null;
 }
 
 function deleteCookie(name) {
