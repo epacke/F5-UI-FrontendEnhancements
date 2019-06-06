@@ -1354,15 +1354,19 @@ function improveDataGroupListEditing(){
         //Remove current options
         $("select:visible").last().find("option").remove();
 
+        var selectList = "";
+
         for(var key in importObj){
 
             var value = importObj[key];
             var optionValue = value === "" ? key : (key + "\\x0a" + value);
             var optionText = value === "" ? key : (key + " := " + value);
 
-            $("select:visible").last().append("<option value=\"" + optionValue + "\" selected=\"\">" + optionText + "</option></select>");
-
+            selectList += "<option value=\"" + optionValue + "\" selected>" + optionText + "</option>";
         }
+
+        $("select:visible").last().append(selectList);
+
         $("input#update").prop("disabled", false);
     })
 
