@@ -1325,17 +1325,20 @@ function improveDataGroupListEditing(){
         //Create objects from the arrays
         var importObj = createDGListObject(importListArr);
         var currentObj = createDGListObject(currentListArr);
+        var selectList = "";
 
         for(var key in importObj){
+            var value = importObj[key];
+            var optionValue = value === "" ? key : (key + "\\x0a" + value);
+            var optionText = value === "" ? key : (key + " := " + value);
+
             if(!(key in currentObj)){
-
-                var value = importObj[key];
-                var optionValue = value === "" ? key : (key + "\\x0a" + value);
-                var optionText = value === "" ? key : (key + " := " + value);
-
-                $("select:visible").last().append("<option value=\"" + optionValue + "\" selected=\"\">" + optionText + "</option></select>");
+                selectList += "<option value=\"" + optionValue + "\" selected>"
+                    + optionText + "</option>";
             }
         }
+
+        $("select:visible").last().append(selectList);
 
         $("input#update").prop("disabled", false);
 
