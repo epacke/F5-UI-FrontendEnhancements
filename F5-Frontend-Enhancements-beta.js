@@ -4,7 +4,7 @@
 // @match https://*/tmui/Control/*
 // @author https://loadbalancing.se/about
 // @run-at document-end
-// @version 18
+// @version 19
 // @updateURL https://raw.githubusercontent.com/epacke/F5-UI-FrontendEnhancements/master/F5-Frontend-Enhancements-beta.js
 // @downloadURL https://raw.githubusercontent.com/epacke/F5-UI-FrontendEnhancements/master/F5-Frontend-Enhancements-beta.js
 // @supportURL https://devcentral.f5.com/s/articles/webui-tweaks-v12-1109
@@ -1340,6 +1340,7 @@ function improveDataGroupListEditing(){
 
         $("select:visible").last().append(selectList);
 
+        $("input#bulkEdit").prop("disabled", false);
         $("input#update").prop("disabled", false);
 
     })
@@ -1370,6 +1371,7 @@ function improveDataGroupListEditing(){
 
         $("select:visible").last().append(selectList);
 
+        $("input#bulkEdit").prop("disabled", false);
         $("input#update").prop("disabled", false);
     })
 
@@ -1382,6 +1384,7 @@ function improveDataGroupListEditing(){
             $(this).remove();
         })
 
+        $("input#bulkEdit").prop("disabled", true);
         $("input#update").prop("disabled", true);
         $("textarea.bulkcontent:visible").val(keyVals.join("\n"));
 
