@@ -4,7 +4,7 @@
 // @match https://*/tmui/Control/*
 // @author https://loadbalancing.se/about
 // @run-at document-end
-// @version 19
+// @version 20
 // @updateURL https://raw.githubusercontent.com/epacke/F5-UI-FrontendEnhancements/master/F5-Frontend-Enhancements-beta.js
 // @downloadURL https://raw.githubusercontent.com/epacke/F5-UI-FrontendEnhancements/master/F5-Frontend-Enhancements-beta.js
 // @supportURL https://devcentral.f5.com/s/articles/webui-tweaks-v12-1109
@@ -1438,33 +1438,23 @@ function improveDataGroupListProperties(){
     })
 }
 
-function validateDGObject(lines){
-    //Validate that all records has one or no delimiter
-    return !(lines.some(function(line){
-        return (line.split(/\s*:=\s*/i).length > 2)
-    }));
-}
-
-
 function createDGListObject(lines){
 
     var bulkImportObj = {}
 
-    if(validateDGObject(lines)){
+    //Creating object and ignoring duplicates
+    lines.map(function(line){
 
-        //Creating object and ignoring duplicates
-        lines.map(function(line){
+        // break on first := if present
+        var lineArr = line.split(/\s*:=\s*(.*)/i)
+        var key = lineArr[0];
+        var value = lineArr[1] || "";
 
-            var lineArr = line.split(/\s*:=\s*/i)
-            var key = lineArr[0];
-            var value = lineArr[1] || "";
+        if(!(key in bulkImportObj)){
+            bulkImportObj[key] = value;
+        }
 
-            if(!(key in bulkImportObj)){
-                bulkImportObj[key] = value;
-            }
-
-        });
-    }
+    });
 
     return bulkImportObj
 }
