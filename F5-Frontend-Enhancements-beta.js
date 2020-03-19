@@ -2,6 +2,7 @@
 // @name BigiIP UI Tweaks
 // @description Tweaks the F5 UI
 // @match https://*/tmui/Control/*
+// @homepage https://devcentral.f5.com/s/articles/webui-tweaks-v12-1109
 // @author https://loadbalancing.se/about
 // @run-at document-end
 // @version 20
