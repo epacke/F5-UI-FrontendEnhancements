@@ -521,7 +521,7 @@ var enhancementFunctions = {
     "addChristmasTheme": new function(){
         this.name = "Christmas theme";
         this.description = `<ul>
-                                <li>Allows the user to enable/disable christmas theme during December</li>
+                                <li>Allows the user to enable/disable Christmas theme during December</li>
                             </ul>`
         this.enabled = true;
         this.appliesToVersion = ["12", "13", "14", "15"];
@@ -699,7 +699,6 @@ function getLTMLogStatisticsSummary(logDatabase){
 }
 
 function isItChristmas(){
-    return true;
     let d = new Date();
     return d.getMonth() == 11;
 }
