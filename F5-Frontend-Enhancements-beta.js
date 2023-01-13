@@ -1,13 +1,13 @@
 // ==UserScript==
-// @name BigiIP UI Tweaks
-// @description Tweaks the F5 UI
+// @name F5 Frontend Enhancements
+// @description F5 BIG-IP Frontend UI Enhancements
 // @match https://*/tmui/Control/*
 // @homepage https://devcentral.f5.com/s/articles/webui-tweaks-v12-1109
 // @author https://loadbalancing.se/about
 // @run-at document-end
-// @version 21
-// @updateURL https://raw.githubusercontent.com/epacke/F5-UI-FrontendEnhancements/master/F5-Frontend-Enhancements-beta.js
-// @downloadURL https://raw.githubusercontent.com/epacke/F5-UI-FrontendEnhancements/master/F5-Frontend-Enhancements-beta.js
+// @version 22
+// @updateURL https://raw.githubusercontent.com/timriker/F5-UI-FrontendEnhancements/master/F5-Frontend-Enhancements.js
+// @downloadURL https://raw.githubusercontent.com/timriker/F5-UI-FrontendEnhancements/master/F5-Frontend-Enhancements.js
 // @supportURL https://devcentral.f5.com/s/articles/webui-tweaks-v12-1109
 // @grant none
 // @require http://code.jquery.com/jquery-latest.js
