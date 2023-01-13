@@ -2,7 +2,7 @@
 // @name F5 Frontend Enhancements
 // @description F5 BIG-IP Frontend UI Enhancements
 // @match https://*/tmui/Control/*
-// @homepage https://devcentral.f5.com/s/articles/webui-tweaks-v12-1109
+// @homepage https://community.f5.com/t5/codeshare/web-ui-tweaks/ta-p/284967
 // @author https://loadbalancing.se/about
 // @run-at document-end
 // @version 23
