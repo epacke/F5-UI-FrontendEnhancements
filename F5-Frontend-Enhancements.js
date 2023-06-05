@@ -5,7 +5,7 @@
 // @homepage https://devcentral.f5.com/s/articles/WebUI-Tweaks
 // @author https://loadbalancing.se/about
 // @run-at document-end
-// @version 24
+// @version 25
 // @updateURL https://raw.githubusercontent.com/timriker/F5-UI-FrontendEnhancements/master/F5-Frontend-Enhancements.js
 // @downloadURL https://raw.githubusercontent.com/timriker/F5-UI-FrontendEnhancements/master/F5-Frontend-Enhancements.js
 // @supportURL https://devcentral.f5.com/s/articles/webui-tweaks-v12-1109
@@ -1072,9 +1072,10 @@ function improveDataGroupListEditing(){
     $("table#records tbody tr td.settings").after(`<td class="settings" id="dgbulkimport">
                                                     <textarea cols="60" rows="` + (DatagroupListCount + 8) + `" class="bulkcontent"/>
                                                     <br>
-                                                    <input type="button" value="Merge the lists" id="bulkMerge"/>
-                                                    <input type="button" value="Replace current list" id="bulkReplace"/>
-                                                    <input type="button" value="Edit active list" id="bulkEdit"/>
+                                                    <input type="button" value="Merge lists" id="bulkMerge"/>
+                                                    <input type="button" value="Replace list" id="bulkReplace"/>
+                                                    <input type="button" value="Edit all" id="bulkEdit"/>
+                                                    <input type="button" value="Edit selected" id="bulkSelected"/>
                                                     <input type="button" value="Help" id="bulkHelp" onClick="window.open('https://loadbalancing.se/webui-tweaks-manual/#Data_group_list_editing','_blank')"/>
                                                     </td>
                                                     `
@@ -1102,6 +1103,7 @@ function improveDataGroupListEditing(){
             }
         }
         $("select:visible").last().append(selectList);
+        $("input#bulkReplace").prop("disabled", false);
         $("input#bulkEdit").prop("disabled", false);
         $("input#update").prop("disabled", false);
     })
@@ -1130,6 +1132,17 @@ function improveDataGroupListEditing(){
             keyVals.push($(this).text().trim())
             $(this).remove();
         })
+        $("input#bulkEdit").prop("disabled", true);
+        $("input#update").prop("disabled", true);
+        $("textarea.bulkcontent:visible").val(keyVals.join("\n"));
+    })
+    $("input#bulkSelected").on("click", function(){
+        let keyVals = []
+        $("select:visible").last().find("option:selected").each(function(){
+            keyVals.push($(this).text().trim())
+            $(this).remove();
+        })
+        $("input#bulkReplace").prop("disabled", true);
         $("input#bulkEdit").prop("disabled", true);
         $("input#update").prop("disabled", true);
         $("textarea.bulkcontent:visible").val(keyVals.join("\n"));
