@@ -5,9 +5,9 @@
 // @homepage https://devcentral.f5.com/s/articles/WebUI-Tweaks
 // @author https://loadbalancing.se/about
 // @run-at document-end
-// @version 23
-// @updateURL https://raw.githubusercontent.com/epacke/F5-UI-FrontendEnhancements/master/F5-Frontend-Enhancements.js
-// @downloadURL https://raw.githubusercontent.com/epacke/F5-UI-FrontendEnhancements/master/F5-Frontend-Enhancements.js
+// @version 24
+// @updateURL https://raw.githubusercontent.com/timriker/F5-UI-FrontendEnhancements/master/F5-Frontend-Enhancements.js
+// @downloadURL https://raw.githubusercontent.com/timriker/F5-UI-FrontendEnhancements/master/F5-Frontend-Enhancements.js
 // @supportURL https://devcentral.f5.com/s/articles/webui-tweaks-v12-1109
 // @grant none
 // @require https://code.jquery.com/jquery-latest.js
@@ -1060,6 +1060,8 @@ function getDataGroupListsFromRule(str){
  * Data group list improvements
  **************************************************************************/
 function improveDataGroupListEditing(){
+    let css = `select.xxlarge { resize: both; }`;
+    addGlobalStyle(css);
     //Increase the size of the lists
     $("select").not("#datagroup_type_select").attr("size", DatagroupListCount);
     //Add extra cell and buttons for bulk import
@@ -1184,15 +1186,17 @@ function createDGListObject(lines){
  * Virtual server improvements
  **************************************************************************/
 function improveVirtualServerProperties(){
-        //  SSL Profile (client)
-        addDoubleClick("selectedclientsslprofiles", "availableclientsslprofiles_button");
-        addDoubleClick("availableclientsslprofiles", "selectedclientsslprofiles_button");
-        //  SSL Profile (server)
-        addDoubleClick("selectedserversslprofiles", "availableserversslprofiles_button");
-        addDoubleClick("availableserversslprofiles", "selectedserversslprofiles_button");
-        //  VLANs and Tunnels
-        addDoubleClick("selected_vlans", "available_vlans_button");
-        addDoubleClick("available_vlans", "selected_vlans_button");
+    let css = `select.large { resize: both; }`;
+    addGlobalStyle(css);
+    //  SSL Profile (client)
+    addDoubleClick("selectedclientsslprofiles", "availableclientsslprofiles_button");
+    addDoubleClick("availableclientsslprofiles", "selectedclientsslprofiles_button");
+    //  SSL Profile (server)
+    addDoubleClick("selectedserversslprofiles", "availableserversslprofiles_button");
+    addDoubleClick("availableserversslprofiles", "selectedserversslprofiles_button");
+    //  VLANs and Tunnels
+    addDoubleClick("selected_vlans", "available_vlans_button");
+    addDoubleClick("available_vlans", "selected_vlans_button");
 }
 
 function improveiRuleSelection(){
@@ -1691,4 +1695,3 @@ function uriContains(s) {
     let uri = (document.location.pathname + document.location.search);
     return uri.indexOf(s) >= 0;
 }
-
